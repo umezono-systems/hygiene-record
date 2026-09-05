@@ -274,7 +274,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.4_work</div>
+      <div class="sub">v0.4-1_work</div>
     </div>
   </header>
 
@@ -282,9 +282,9 @@
     <div id="authBlocked" class="card auth-block hidden">
       <h2>梅園ポータルの端末認証が必要です</h2>
       <p>
-        この端末を第一製造部の共有アカウントで梅園ポータルへログインしてから、
-        衛生管理記録を開いてください。
+        梅園ポータルで共有端末認証済みの場合は、その認証を自動で引き継ぎます。
       </p>
+      <div id="authBlockedDetail" class="error hidden"></div>
       <a class="link-button" href="https://umezono-systems.github.io/umezono-portal/">梅園ポータルを開く</a>
       <br><br>
       <button class="secondary" type="button" onclick="location.reload()">認証後に再確認</button>
@@ -574,7 +574,9 @@
       const portalCredential = readPortalDeviceCredential();
 
       if (!portalCredential) {
-        showAuthBlocked();
+        showAuthBlocked(
+          "このブラウザの保存領域からポータル端末認証情報を取得できませんでした。"
+        );
         return false;
       }
 
@@ -596,6 +598,12 @@
 
           if (!result?.ready) continue;
 
+          if (result?.error) {
+            const authError = new Error(String(result.error));
+            authError.noRetry = true;
+            throw authError;
+          }
+
           SESSION_TOKEN = String(result.sessionToken || "");
 
           if (!SESSION_TOKEN) {
@@ -610,16 +618,23 @@
           return true;
 
         } catch (error) {
-          if (attempt >= 19) throw error;
+          if (error?.noRetry || attempt >= 19) throw error;
         }
       }
 
       throw new Error("梅園ポータルの端末認証を引き継げませんでした。");
     }
 
-    function showAuthBlocked() {
+    function showAuthBlocked(detail) {
       el("authBlocked").classList.remove("hidden");
       el("appArea").classList.add("hidden");
+
+      const detailBox = el("authBlockedDetail");
+      if (detailBox) {
+        const text = String(detail || "").trim();
+        detailBox.textContent = text;
+        detailBox.classList.toggle("hidden", !text);
+      }
     }
 
     async function init() {
@@ -641,8 +656,13 @@
         el("historyMonth").value = BOOT.today.slice(0, 7);
 
         const deviceName = device.display_name || "共有アカウント";
+        const scopeType = device.shared_scope_type || "";
+        const scopeCode = device.shared_scope_code || "";
+        const scopeLabel = scopeType && scopeCode
+          ? " / " + scopeType + ":" + scopeCode
+          : "";
         el("deviceLabel").textContent =
-          "端末認証：" + deviceName + " / 共有";
+          "端末認証：" + deviceName + " / 共有" + scopeLabel;
 
         renderForms();
 
@@ -658,7 +678,7 @@
           text.includes("認証") ||
           text.includes("共有アカウント")
         ) {
-          showAuthBlocked();
+          showAuthBlocked(text);
           el("appArea").classList.add("hidden");
         } else {
           showError(error);
