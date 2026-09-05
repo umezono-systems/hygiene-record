@@ -253,16 +253,68 @@
       font-weight:800;
     }
 
+    .metric-value {
+      margin-top:6px;
+      font-size:24px;
+      font-weight:800;
+      line-height:1.2;
+    }
+
+    .review-complete {
+      border:1px solid #b9ddc9;
+      background:#f0faf4;
+      color:#195d3b;
+      border-radius:10px;
+      padding:12px;
+      line-height:1.7;
+      margin-bottom:12px;
+    }
+
+    .review-form-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:12px;
+      margin:12px 0;
+    }
+
+    .field-label {
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    .print-only { display:none; }
+
     @media(max-width:640px) {
       .temp-row { grid-template-columns:1fr 100px; }
       .temp-result { grid-column:2; }
     }
 
     @media print {
-      header,.tabs,#message,.no-print,.modal-backdrop { display:none!important; }
+      header,.tabs,#message,.no-print,.modal-backdrop,.screen-only {
+        display:none!important;
+      }
+      .print-only { display:block!important; }
       body { background:#fff; }
       main { max-width:none; padding:0; }
-      .card { border:0; padding:0; }
+      .card {
+        border:0;
+        padding:0;
+        margin:0 0 18px;
+        break-inside:avoid;
+      }
+      table { font-size:11px; }
+      th,td { padding:6px 4px; }
+      .grid {
+        grid-template-columns:repeat(5,1fr);
+        gap:6px;
+      }
+      .status-card {
+        padding:8px;
+        border:1px solid #bbb;
+      }
+      .metric-value { font-size:18px; }
     }
   </style>
 </head>
@@ -274,7 +326,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.4-2_work</div>
+      <div class="sub">v0.5_work</div>
     </div>
   </header>
 
@@ -367,12 +419,64 @@
       </section>
 
       <section id="view-history" class="hidden">
+        <div id="monthlyPrintHeader" class="print-only"></div>
+
         <div class="card">
           <div class="section-head">
-            <h2>記録一覧</h2>
-            <input type="month" id="historyMonth" style="max-width:170px">
+            <h2>月間記録</h2>
+            <div class="row no-print">
+              <input type="month" id="historyMonth" style="max-width:170px">
+              <button class="secondary" type="button" onclick="printMonthly()">
+                印刷 / PDF
+              </button>
+            </div>
           </div>
-          <div id="historyTable"></div>
+
+          <div id="historySummary" class="grid"></div>
+          <div id="historyTable" style="margin-top:14px"></div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>月次確認</h2>
+              <div class="muted">
+                月の記録状況を確認し、確認者を残します。再確認すると履歴を残して更新します。
+              </div>
+            </div>
+          </div>
+
+          <div id="monthlyReviewStatus"></div>
+
+          <div class="screen-only">
+            <div class="review-form-grid">
+              <div>
+                <label class="field-label" for="monthlyTargetDays">記録対象日数</label>
+                <input id="monthlyTargetDays" type="number" min="0" inputmode="numeric">
+                <div class="muted">実際に衛生記録が必要だった稼働日数を入力</div>
+              </div>
+
+              <div>
+                <label class="field-label" for="monthlyPlanChange">衛生管理計画の変更</label>
+                <select id="monthlyPlanChange" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff">
+                  <option value="">選択してください</option>
+                  <option value="false">不要</option>
+                  <option value="true">必要</option>
+                </select>
+              </div>
+            </div>
+
+            <label class="field-label" for="monthlyReviewComment">月次確認コメント</label>
+            <textarea id="monthlyReviewComment"
+              placeholder="例：記録漏れなし。温度基準外1件は当日中に改善済み。"></textarea>
+
+            <br>
+            <button class="primary no-print" type="button" onclick="confirmMonthlyReview()">
+              月次確認を確定
+            </button>
+          </div>
+
+          <div id="monthlyReviewPrint" class="print-only"></div>
         </div>
       </section>
 
@@ -396,7 +500,7 @@
   <div id="operatorModal" class="modal-backdrop hidden" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="operatorModalTitle">
       <div class="modal-title" id="operatorModalTitle">記録者の確認</div>
-      <p class="muted">
+      <p class="muted" id="operatorModalDescription">
         この記録を確定する方の社員番号を入力してください。
       </p>
 
@@ -435,13 +539,16 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
     const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
     const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
-    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.4-session";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.5-session";
 
     let BOOT = null;
     let RECORD = null;
     let SESSION_TOKEN = "";
     let JSONP_SEQUENCE = 0;
     let SELECTED_OPERATOR = null;
+    let OPERATOR_MODAL_MODE = "daily";
+    let MONTHLY_OVERVIEW = null;
+    let PENDING_MONTHLY_REVIEW = null;
 
     const state = {
       details: {},
@@ -1219,16 +1326,27 @@
         return;
       }
 
-      openOperatorModal();
+      openOperatorModal("daily");
     }
 
-    function openOperatorModal() {
+    function openOperatorModal(mode = "daily") {
+      OPERATOR_MODAL_MODE = mode;
       SELECTED_OPERATOR = null;
       el("operatorEmployeeNo").value = "";
       el("operatorSummary").textContent = "";
       el("operatorSummary").classList.add("hidden");
       el("operatorConfirmButton").disabled = true;
       setOperatorModalMessage("");
+
+      const isMonthly = OPERATOR_MODAL_MODE === "monthly";
+      el("operatorModalTitle").textContent =
+        isMonthly ? "月次確認者の確認" : "記録者の確認";
+      el("operatorModalDescription").textContent =
+        isMonthly
+          ? "この月次確認を確定する方の社員番号を入力してください。"
+          : "この記録を確定する方の社員番号を入力してください。";
+      el("operatorConfirmButton").textContent =
+        isMonthly ? "この社員で月次確認" : "この社員で確定";
 
       el("operatorModal").classList.remove("hidden");
       el("operatorModal").setAttribute("aria-hidden", "false");
@@ -1296,7 +1414,9 @@
         el("operatorConfirmButton").disabled = false;
 
         setOperatorModalMessage(
-          "氏名を確認し、ご本人であれば「この社員で確定」を押してください。",
+          OPERATOR_MODAL_MODE === "monthly"
+            ? "氏名を確認し、ご本人であれば「この社員で月次確認」を押してください。"
+            : "氏名を確認し、ご本人であれば「この社員で確定」を押してください。",
           "notice"
         );
 
@@ -1319,6 +1439,11 @@
           "先に社員番号から氏名を確認してください。",
           "error"
         );
+        return;
+      }
+
+      if (OPERATOR_MODAL_MODE === "monthly") {
+        await executeMonthlyReviewAsOperator();
         return;
       }
 
@@ -1356,6 +1481,151 @@
         );
 
         showView("home");
+
+      } catch (error) {
+        setOperatorModalMessage(
+          error?.message || String(error),
+          "error"
+        );
+
+      } finally {
+        el("operatorConfirmButton").dataset.busy = "false";
+        el("operatorConfirmButton").disabled =
+          !SELECTED_OPERATOR?.employee_no;
+        el("operatorLookupButton").disabled = false;
+      }
+    }
+
+    function buildMonthlyReviewPayload() {
+      return {
+        yearMonth: el("historyMonth").value,
+        targetDays: Number(el("monthlyTargetDays").value),
+        planChangeRequired: el("monthlyPlanChange").value,
+        comment: String(el("monthlyReviewComment").value || "").trim()
+      };
+    }
+
+    function validateMonthlyReviewInput() {
+      if (!MONTHLY_OVERVIEW) {
+        return "月間記録を読み込んでから月次確認を行ってください。";
+      }
+
+      const summary = MONTHLY_OVERVIEW.summary || {};
+      const daysInMonth = Number(MONTHLY_OVERVIEW.daysInMonth || 31);
+      const targetDays = Number(el("monthlyTargetDays").value);
+
+      if (!Number.isInteger(targetDays) || targetDays < 0 || targetDays > daysInMonth) {
+        return `記録対象日数は0日以上${daysInMonth}日以下で入力してください。`;
+      }
+
+      if (targetDays < Number(summary.recordCount || 0)) {
+        return "記録対象日数は、既に記録されている日数以上で入力してください。";
+      }
+
+      if (Number(summary.draftCount || 0) > 0) {
+        return "下書きの日次記録があります。先に日次記録を確定してください。";
+      }
+
+      if (!el("monthlyPlanChange").value) {
+        return "衛生管理計画の変更要否を選択してください。";
+      }
+
+      const missingDays = targetDays - Number(summary.recordCount || 0);
+      const planChangeRequired = el("monthlyPlanChange").value === "true";
+      const comment = String(el("monthlyReviewComment").value || "").trim();
+
+      if (
+        (missingDays > 0 ||
+          Number(summary.unresolvedCount || 0) > 0 ||
+          planChangeRequired) &&
+        !comment
+      ) {
+        return "記録漏れ・未解決事項・計画変更がある場合はコメントを入力してください。";
+      }
+
+      return "";
+    }
+
+    function confirmMonthlyReview() {
+      const error = validateMonthlyReviewInput();
+
+      if (error) {
+        showError(new Error(error));
+        return;
+      }
+
+      PENDING_MONTHLY_REVIEW = buildMonthlyReviewPayload();
+      openOperatorModal("monthly");
+    }
+
+    async function waitForMonthlyReview(previousReviewId, employeeNo, attempts = 22) {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        await sleep(attempt === 0 ? 850 : 550);
+
+        try {
+          const overview = await jsonp({
+            action:"monthlyOverview",
+            yearMonth:PENDING_MONTHLY_REVIEW?.yearMonth || el("historyMonth").value
+          });
+
+          const review = overview?.latestReview;
+
+          if (
+            review?.reviewId &&
+            review.reviewId !== previousReviewId &&
+            String(review.reviewedByEmployeeNo || "") === String(employeeNo || "")
+          ) {
+            return overview;
+          }
+        } catch (error) {
+          // 書込完了待ちの途中では次の試行へ。
+        }
+      }
+
+      throw new Error(
+        "月次確認の保存結果を確認できませんでした。画面を再読み込みしてご確認ください。"
+      );
+    }
+
+    async function executeMonthlyReviewAsOperator() {
+      if (!PENDING_MONTHLY_REVIEW) {
+        setOperatorModalMessage("月次確認内容を確認できません。", "error");
+        return;
+      }
+
+      try {
+        el("operatorConfirmButton").disabled = true;
+        el("operatorConfirmButton").dataset.busy = "true";
+        el("operatorLookupButton").disabled = true;
+
+        setOperatorModalMessage(
+          "月次確認を保存しています...",
+          "saving"
+        );
+
+        const previousReviewId =
+          MONTHLY_OVERVIEW?.latestReview?.reviewId || "";
+        const expectedEmployeeNo = SELECTED_OPERATOR.employee_no;
+
+        submitForm("saveMonthlyReview", {
+          payload: PENDING_MONTHLY_REVIEW,
+          operatorEmployeeNo: expectedEmployeeNo
+        });
+
+        const overview = await waitForMonthlyReview(
+          previousReviewId,
+          expectedEmployeeNo
+        );
+
+        MONTHLY_OVERVIEW = overview;
+        PENDING_MONTHLY_REVIEW = null;
+        closeOperatorModal();
+        renderMonthlyOverview(overview);
+
+        showMessage(
+          `${overview.latestReview?.reviewedBy || "確認者"}として月次確認を確定しました。`,
+          "notice"
+        );
 
       } catch (error) {
         setOperatorModalMessage(
@@ -1475,22 +1745,53 @@
           .join("");
     }
 
-    async function loadHistory() {
-      const yearMonth = el("historyMonth").value;
-      if (!yearMonth) return;
+    function monthLabel(yearMonth) {
+      const match = String(yearMonth || "").match(/^(\d{4})-(\d{2})$/);
+      if (!match) return String(yearMonth || "");
+      return `${Number(match[1])}年${Number(match[2])}月`;
+    }
 
-      try {
-        const rows = await jsonp({
-          action:"monthly",
-          yearMonth
-        });
+    function renderMonthlyOverview(overview) {
+      MONTHLY_OVERVIEW = overview || null;
 
-        if (!rows.length) {
-          el("historyTable").innerHTML =
-            '<div class="notice">この月の記録はありません。</div>';
-          return;
-        }
+      const summary = overview?.summary || {
+        recordCount:0,
+        confirmedCount:0,
+        draftCount:0,
+        problemCount:0,
+        unresolvedCount:0
+      };
+      const records = overview?.records || [];
+      const review = overview?.latestReview || null;
+      const yearMonth = overview?.yearMonth || el("historyMonth").value;
 
+      el("monthlyPrintHeader").innerHTML = `
+        <h1 style="font-size:20px;margin:0 0 4px">第一製造部 衛生管理記録 月次一覧</h1>
+        <div style="font-size:14px;margin-bottom:14px">
+          対象月：${escapeHtml(monthLabel(yearMonth))}
+          ／ 食品衛生責任者：西川 周一郎
+        </div>
+      `;
+
+      const metrics = [
+        ["記録日数", summary.recordCount, ""],
+        ["確定", summary.confirmedCount, "ok"],
+        ["下書き", summary.draftCount, summary.draftCount ? "ng" : ""],
+        ["不備・対応", summary.problemCount, summary.problemCount ? "ng" : ""],
+        ["未解決", summary.unresolvedCount, summary.unresolvedCount ? "ng" : "ok"]
+      ];
+
+      el("historySummary").innerHTML = metrics.map(([label, value, cls]) => `
+        <div class="status-card">
+          <div class="muted">${escapeHtml(label)}</div>
+          <div class="metric-value ${cls}">${Number(value || 0)}</div>
+        </div>
+      `).join("");
+
+      if (!records.length) {
+        el("historyTable").innerHTML =
+          '<div class="notice">この月の記録はありません。</div>';
+      } else {
         el("historyTable").innerHTML = `
           <table>
             <thead>
@@ -1498,15 +1799,17 @@
                 <th>日付</th>
                 <th>状態</th>
                 <th>不備</th>
+                <th>未解決</th>
                 <th>記録者</th>
               </tr>
             </thead>
             <tbody>
-              ${rows.map(row => `
+              ${records.map(row => `
                 <tr>
                   <td>${escapeHtml(row.date)}</td>
                   <td>${row.status === "CONFIRMED" ? "確定" : "下書き"}</td>
                   <td>${Number(row.problemCount || 0)}</td>
+                  <td>${Number(row.unresolvedCount || 0)}</td>
                   <td>
                     ${escapeHtml(row.operator || "")}
                     ${row.operatorEmployeeNo
@@ -1518,10 +1821,106 @@
             </tbody>
           </table>
         `;
+      }
+
+      const targetDaysDefault =
+        review?.targetDays !== undefined && review?.targetDays !== null
+          ? Number(review.targetDays)
+          : Number(summary.recordCount || 0);
+
+      el("monthlyTargetDays").max = String(overview?.daysInMonth || 31);
+      el("monthlyTargetDays").value = String(targetDaysDefault);
+      el("monthlyPlanChange").value =
+        review ? String(Boolean(review.planChangeRequired)) : "";
+      el("monthlyReviewComment").value = review?.comment || "";
+
+      if (review) {
+        el("monthlyReviewStatus").innerHTML = `
+          <div class="review-complete">
+            <strong>月次確認済み（第${Number(review.revisionNo || 1)}版）</strong><br>
+            確認者：${escapeHtml(review.reviewedBy || "")}
+            ${review.reviewedByEmployeeNo
+              ? ` / 社員番号 ${escapeHtml(review.reviewedByEmployeeNo)}`
+              : ""}
+            <br>
+            確認日時：${escapeHtml(review.reviewedAt || "")}<br>
+            記録対象 ${Number(review.targetDays || 0)}日
+            ／ 記録済み ${Number(review.recordCount || 0)}日
+            ／ 記録漏れ ${Number(review.missingDays || 0)}日
+            ／ 未解決 ${Number(review.unresolvedCount || 0)}件
+            ／ 計画変更 ${review.planChangeRequired ? "必要" : "不要"}
+          </div>
+        `;
+      } else {
+        el("monthlyReviewStatus").innerHTML =
+          '<div class="notice">この月はまだ月次確認されていません。</div>';
+      }
+
+      el("monthlyReviewPrint").innerHTML = review
+        ? `
+          <h2 style="font-size:16px;margin:14px 0 8px">月次確認</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>確認版</th><td>第${Number(review.revisionNo || 1)}版</td>
+                <th>確認日時</th><td>${escapeHtml(review.reviewedAt || "")}</td>
+              </tr>
+              <tr>
+                <th>確認者</th>
+                <td colspan="3">
+                  ${escapeHtml(review.reviewedBy || "")}
+                  ${review.reviewedByEmployeeNo
+                    ? ` / 社員番号 ${escapeHtml(review.reviewedByEmployeeNo)}`
+                    : ""}
+                </td>
+              </tr>
+              <tr>
+                <th>記録対象</th><td>${Number(review.targetDays || 0)}日</td>
+                <th>記録漏れ</th><td>${Number(review.missingDays || 0)}日</td>
+              </tr>
+              <tr>
+                <th>不備・対応</th><td>${Number(review.problemCount || 0)}件</td>
+                <th>未解決</th><td>${Number(review.unresolvedCount || 0)}件</td>
+              </tr>
+              <tr>
+                <th>計画変更</th><td>${review.planChangeRequired ? "必要" : "不要"}</td>
+                <th>コメント</th><td>${escapeHtml(review.comment || "なし")}</td>
+              </tr>
+            </tbody>
+          </table>
+        `
+        : `
+          <h2 style="font-size:16px;margin:14px 0 8px">月次確認</h2>
+          <p>未確認</p>
+        `;
+    }
+
+    async function loadHistory() {
+      const yearMonth = el("historyMonth").value;
+      if (!yearMonth) return;
+
+      try {
+        showMessage("月間記録を読み込んでいます...", "saving");
+
+        const overview = await jsonp({
+          action:"monthlyOverview",
+          yearMonth
+        });
+
+        renderMonthlyOverview(overview);
+        clearMessage();
 
       } catch (error) {
         showError(error);
       }
+    }
+
+    function printMonthly() {
+      if (!MONTHLY_OVERVIEW) {
+        showError(new Error("月間記録を読み込んでから印刷してください。"));
+        return;
+      }
+      window.print();
     }
 
     el("historyMonth").addEventListener("change", loadHistory);
