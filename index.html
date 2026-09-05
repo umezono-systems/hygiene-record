@@ -1,74 +1,1600 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#315d99">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="衛生管理">
-<link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
-<title>梅園 衛生管理記録</title>
-<style>
-:root{--bg:#f5f6f7;--card:#fff;--line:#dfe3e8;--text:#202428;--muted:#6b7280;--accent:#315d99;--ok:#1f7a4d;--ng:#b42318;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}
-header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);padding:14px 16px}
-.wrap{max-width:980px;margin:auto}.head{display:flex;justify-content:space-between;gap:12px;align-items:center}.title{font-weight:700;font-size:18px}.sub,.muted{font-size:12px;color:var(--muted)}
-main{max-width:980px;margin:auto;padding:16px 14px 48px}.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.tab,.secondary,.choice{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer}.tab{border-radius:999px;white-space:nowrap}.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}h2{font-size:17px;margin:0 0 12px}h3{font-size:15px;margin:18px 0 8px}p{line-height:1.7}
-.section-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.status-card{border:1px solid var(--line);border-radius:12px;padding:14px}.status{font-weight:700}.ok{color:var(--ok)}.ng{color:var(--ng)}.empty{color:var(--muted)}
-.primary{width:100%;border:0;border-radius:10px;background:var(--accent);color:#fff;padding:13px 16px;font-weight:700;cursor:pointer}.row,.choices{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.item{padding:12px 0;border-top:1px solid #eef0f2}.item:first-child{border-top:0}.item-name{font-size:14px;margin-bottom:8px}
-.choice.selected.OK{border-color:var(--ok);background:#ecf8f1;color:var(--ok)}.choice.selected.NG{border-color:var(--ng);background:#fff0ef;color:var(--ng)}.choice.selected.NA{background:#f3f4f6}
-.temp-row{display:grid;grid-template-columns:1fr 120px 90px;gap:8px;align-items:center;padding:9px 0;border-top:1px solid #eef0f2}
-input,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;background:#fff;font:inherit}textarea{min-height:70px}.problem{border:1px solid #f0b6b0;background:#fff8f7;border-radius:10px;padding:12px;margin:10px 0}
-.notice,.error,.saving{padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:12px}.notice{background:#eef4fb;color:#244a78}.error{background:#fff0ef;color:var(--ng)}.saving{background:#fff7e8;color:#8a4b08}
-.hidden{display:none!important}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}
-@media(max-width:640px){.temp-row{grid-template-columns:1fr 100px}.temp-result{grid-column:2}}
-@media print{header,.tabs,#message,.no-print{display:none!important}body{background:#fff}main{max-width:none;padding:0}.card{border:0;padding:0}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#315d99">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="衛生管理">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <title>梅園 衛生管理記録</title>
+
+  <style>
+    :root {
+      --bg:#f5f6f7;
+      --card:#fff;
+      --line:#dfe3e8;
+      --text:#202428;
+      --muted:#6b7280;
+      --accent:#315d99;
+      --accent-soft:#eef4fb;
+      --ok:#1f7a4d;
+      --ng:#b42318;
+      --warn:#9a5b08;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;
+    }
+
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); }
+    button,input,textarea { font:inherit; }
+
+    header {
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      padding:14px 16px;
+    }
+
+    .wrap { max-width:980px; margin:auto; }
+    .head {
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+    }
+    .title { font-weight:800; font-size:18px; }
+    .sub,.muted { font-size:12px; color:var(--muted); line-height:1.6; }
+
+    main { max-width:980px; margin:auto; padding:16px 14px 48px; }
+    .tabs { display:flex; gap:8px; overflow:auto; margin-bottom:14px; }
+    .tab,.secondary,.choice {
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:9px;
+      padding:9px 12px;
+      cursor:pointer;
+    }
+    .tab { border-radius:999px; white-space:nowrap; }
+    .tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    .card {
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px;
+      margin-bottom:14px;
+    }
+
+    h2 { font-size:17px; margin:0 0 12px; }
+    h3 { font-size:15px; margin:18px 0 8px; }
+    p { line-height:1.75; }
+
+    .section-head {
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+      gap:10px;
+    }
+
+    .status-card {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      background:#fff;
+    }
+
+    .status { font-weight:800; }
+    .ok { color:var(--ok); }
+    .ng { color:var(--ng); }
+    .empty { color:var(--muted); }
+
+    .primary {
+      width:100%;
+      border:0;
+      border-radius:10px;
+      background:var(--accent);
+      color:#fff;
+      padding:13px 16px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .primary:disabled,.secondary:disabled {
+      opacity:.45;
+      cursor:not-allowed;
+    }
+
+    .row,.choices {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .item {
+      padding:12px 0;
+      border-top:1px solid #eef0f2;
+    }
+    .item:first-child { border-top:0; }
+    .item-name { font-size:14px; margin-bottom:8px; }
+
+    .choice.selected.OK {
+      border-color:var(--ok);
+      background:#ecf8f1;
+      color:var(--ok);
+    }
+    .choice.selected.NG {
+      border-color:var(--ng);
+      background:#fff0ef;
+      color:var(--ng);
+    }
+    .choice.selected.NA { background:#f3f4f6; }
+
+    .temp-row {
+      display:grid;
+      grid-template-columns:1fr 120px 90px;
+      gap:8px;
+      align-items:center;
+      padding:9px 0;
+      border-top:1px solid #eef0f2;
+    }
+
+    input,textarea {
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:9px;
+      background:#fff;
+    }
+    textarea { min-height:70px; resize:vertical; }
+
+    .problem {
+      border:1px solid #f0b6b0;
+      background:#fff8f7;
+      border-radius:10px;
+      padding:12px;
+      margin:10px 0;
+    }
+
+    .notice,.error,.saving,.warning {
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:13px;
+      line-height:1.6;
+      margin-bottom:12px;
+    }
+    .notice { background:var(--accent-soft); color:#244a78; }
+    .error { background:#fff0ef; color:var(--ng); }
+    .saving { background:#fff7e8; color:#8a4b08; }
+    .warning { background:#fff7e8; color:var(--warn); }
+
+    .auth-block {
+      padding:24px 18px;
+      text-align:center;
+    }
+    .auth-block h2 { margin-bottom:8px; }
+    .auth-block p { color:var(--muted); margin:0 0 18px; }
+
+    .link-button {
+      display:inline-block;
+      border-radius:10px;
+      background:var(--accent);
+      color:#fff;
+      padding:11px 16px;
+      text-decoration:none;
+      font-weight:800;
+    }
+
+    .record-meta {
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:10px;
+      background:#f7f8fa;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .hidden { display:none!important; }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th,td {
+      padding:9px 6px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      vertical-align:top;
+    }
+
+    .modal-backdrop {
+      position:fixed;
+      inset:0;
+      z-index:100;
+      background:rgba(0,0,0,.42);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .modal {
+      width:min(480px,100%);
+      background:#fff;
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 18px 60px rgba(0,0,0,.24);
+    }
+
+    .modal-title {
+      font-size:18px;
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .operator-summary {
+      margin:12px 0;
+      padding:12px;
+      border-radius:10px;
+      background:#edf7f1;
+      color:#195d3b;
+      font-weight:800;
+    }
+
+    @media(max-width:640px) {
+      .temp-row { grid-template-columns:1fr 100px; }
+      .temp-result { grid-column:2; }
+    }
+
+    @media print {
+      header,.tabs,#message,.no-print,.modal-backdrop { display:none!important; }
+      body { background:#fff; }
+      main { max-width:none; padding:0; }
+      .card { border:0; padding:0; }
+    }
+  </style>
 </head>
+
 <body>
-<header><div class="wrap head"><div><div class="title">梅園 衛生管理記録</div><div class="sub" id="headerSub">第一製造部</div></div><div class="sub">v0.3_work</div></div></header>
-<main>
-<div class="tabs no-print">
-<button class="tab active" data-view="home">ホーム</button><button class="tab" data-view="today">今日の記録</button><button class="tab" data-view="history">記録一覧</button><button class="tab" data-view="plan">衛生管理計画</button>
-</div>
-<div id="message"></div>
-<section id="view-home"><div class="card"><div class="section-head"><div><h2 id="todayLabel">本日の記録</h2><div class="muted" id="operatorLabel">接続中...</div></div><div id="overallStatus" class="status empty">確認中</div></div><div class="grid" id="homeGrid"></div><br><button class="primary no-print" onclick="showView('today')">今日の記録を入力</button></div></section>
-<section id="view-today" class="hidden"><div class="card"><div class="section-head"><div><h2>日次衛生管理</h2><div class="muted" id="recordDateLabel"></div></div><button class="secondary no-print" onclick="saveDraft()">下書き保存</button></div></div><div id="sections"></div><div class="card"><h2>始業時温度</h2><div id="tempStart"></div></div><div class="card"><h2>終業時温度</h2><div id="tempEnd"></div></div><div class="card"><h2>不備・改善対応</h2><div id="actions"></div></div><div class="card"><label class="muted">確定済み記録を修正する場合の理由</label><input id="revisionReason" placeholder="例：終業時温度の入力値を訂正"><br><br><button class="primary no-print" onclick="confirmRecord()">本日の記録を確定</button></div></section>
-<section id="view-history" class="hidden"><div class="card"><div class="section-head"><h2>記録一覧</h2><input type="month" id="historyMonth" style="max-width:170px"></div><div id="historyTable"></div></div></section>
-<section id="view-plan" class="hidden"><div class="card"><div class="section-head"><div><h2>第一製造部 衛生管理計画</h2><div class="muted">食品衛生責任者：西川 周一郎</div></div><button class="secondary no-print" onclick="window.print()">印刷 / PDF</button></div><div id="planContent"></div></div></section>
-</main>
-<iframe name="apiWriteFrame" class="hidden"></iframe>
-<form id="apiWriteForm" method="post" target="apiWriteFrame" class="hidden">
-<input name="action" id="apiAction"><input name="payload" id="apiPayload"><input name="date" id="apiDate"></form>
-<script>
-const API_URL="https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";let BOOT=null,RECORD=null,seq=0;
-const S={details:{},temperatures:{START:{},END:{}},actions:{}};
-document.getElementById('apiWriteForm').action=API_URL;
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showView(b.dataset.view));
-function showView(v){document.querySelectorAll('section[id^="view-"]').forEach(x=>x.classList.add('hidden'));document.getElementById('view-'+v).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='history')loadHistory();if(v==='plan')loadPlan()}
-function jp(p){return new Promise((ok,ng)=>{const cb='__hc'+(++seq),s=document.createElement('script');const t=setTimeout(()=>{cleanup();ng(new Error('API応答がタイムアウトしました。'))},15000);function cleanup(){clearTimeout(t);delete window[cb];s.remove()}window[cb]=r=>{cleanup();r&&r.ok?ok(r.data):ng(new Error(r?.error?.message||'APIエラー'))};const u=new URL(API_URL);Object.entries(p).forEach(([k,v])=>u.searchParams.set(k,v));u.searchParams.set('callback',cb);s.src=u;s.onerror=()=>{cleanup();ng(new Error('APIへ接続できませんでした。'))};document.head.appendChild(s)})}
-async function init(){try{msg('接続しています...','saving');BOOT=await jp({action:'bootstrap'});headerSub.textContent=(BOOT.facility?.facility_name||'第一製造部')+' ・ '+BOOT.appVersion;todayLabel.textContent=dateJP(BOOT.today)+' の記録';recordDateLabel.textContent=dateJP(BOOT.today);operatorLabel.textContent=BOOT.operator?.name&&BOOT.operator.name!=='未認証'?'記録者（仮）：'+BOOT.operator.name:'記録者：社員マスタ認証は次版で接続';historyMonth.value=BOOT.today.slice(0,7);renderForms();loadRecord(await jp({action:'today'}));clearMsg()}catch(e){err(e)}}
-function renderForms(){const ts=[['START','始業時確認'],['RECEIVING','受入確認'],['PRODUCTION','製造時確認'],['END','終業時確認']];sections.innerHTML='';ts.forEach(([t,l])=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<div class="section-head"><h2>${l}</h2><div class="row no-print">${t==='RECEIVING'?'<button class="secondary" onclick="receivingNA()">本日は受入なし</button>':''}<button class="secondary" onclick="allOK('${t}')">この区分をすべて良好</button></div></div><div id="i-${t}"></div>`;sections.appendChild(c);const box=c.querySelector('#i-'+t);BOOT.hygieneItems.filter(i=>i.timing===t).forEach(i=>{const d=document.createElement('div');d.className='item';d.id='item-'+i.item_id;const na=i.allow_na===true||String(i.allow_na)==='true';d.innerHTML=`<div class="item-name">${esc(i.item_name)}</div><div class="choices no-print"><button class="choice" data-r="OK" onclick="setR('${i.item_id}','OK')">○ 良好</button><button class="choice" data-r="NG" onclick="setR('${i.item_id}','NG')">× 不備あり</button>${na?`<button class="choice" data-r="NA" onclick="setR('${i.item_id}','NA')">－ 対象なし</button>`:''}</div>`;box.appendChild(d)})});renderTemps('START',tempStart);renderTemps('END',tempEnd)}
-function renderTemps(t,box){box.innerHTML='';BOOT.equipment.forEach(e=>{const d=document.createElement('div');d.className='temp-row';d.innerHTML=`<div>${esc(e.equipment_name)}</div><input type="number" step="0.1" inputmode="decimal" id="t-${t}-${e.equipment_id}" oninput="temp('${t}','${e.equipment_id}',this.value)"><div class="temp-result" id="tr-${t}-${e.equipment_id}">未入力</div>`;box.appendChild(d)})}
-function loadRecord(r){RECORD=r;BOOT.hygieneItems.forEach(i=>S.details[i.item_id]='');S.temperatures={START:{},END:{}};S.actions={};(r.details||[]).forEach(d=>S.details[d.item_id]=d.result);(r.temperatures||[]).forEach(t=>S.temperatures[t.timing][t.equipment_id]=Number(t.temperature));(r.actions||[]).forEach(a=>S.actions[a.source_id]={sourceType:a.source_type,sourceId:a.source_id,problem:a.problem||'',cause:a.cause||'',actionTaken:a.action_taken||'',resolutionStatus:a.resolution_status||'RESOLVED',recheckValue:a.recheck_value||''});refresh()}
-function refresh(){BOOT.hygieneItems.forEach(i=>{const d=document.getElementById('item-'+i.item_id);if(!d)return;d.querySelectorAll('.choice').forEach(b=>{b.classList.remove('selected','OK','NG','NA');if(S.details[i.item_id]===b.dataset.r)b.classList.add('selected',b.dataset.r)})});['START','END'].forEach(t=>BOOT.equipment.forEach(e=>{const v=S.temperatures[t][e.equipment_id],inp=document.getElementById(`t-${t}-${e.equipment_id}`);inp.value=(v===0||v)?v:'';tempResult(t,e,v)}));renderActions();home()}
-function setR(id,r){S.details[id]=r;if(r!=='NG')delete S.actions[id];refresh()}function allOK(t){BOOT.hygieneItems.filter(i=>i.timing===t).forEach(i=>S.details[i.item_id]='OK');refresh()}function receivingNA(){BOOT.hygieneItems.filter(i=>i.timing==='RECEIVING').forEach(i=>S.details[i.item_id]='NA');refresh()}
-function temp(t,id,v){if(v==='')delete S.temperatures[t][id];else S.temperatures[t][id]=Number(v);const e=BOOT.equipment.find(x=>x.equipment_id===id),k=id+':'+t;if(tempStatus(e,S.temperatures[t][id])!=='NG')delete S.actions[k];tempResult(t,e,S.temperatures[t][id]);renderActions()}
-function tempStatus(e,v){if(v===undefined||v===null||Number.isNaN(Number(v)))return'';return Number(v)<=Number(e.max_temperature)?'OK':'NG'}function tempResult(t,e,v){const x=document.getElementById(`tr-${t}-${e.equipment_id}`),s=tempStatus(e,v);x.className='temp-result '+(s==='OK'?'ok':s==='NG'?'ng':'');x.textContent=s==='OK'?'正常':s==='NG'?'基準外':'未入力'}
-function problems(){const a=[];BOOT.hygieneItems.forEach(i=>{if(S.details[i.item_id]==='NG')a.push({key:i.item_id,sourceType:'HYGIENE',sourceId:i.item_id,label:i.item_name})});['START','END'].forEach(t=>BOOT.equipment.forEach(e=>{const v=S.temperatures[t][e.equipment_id];if(tempStatus(e,v)==='NG'){const k=e.equipment_id+':'+t;a.push({key:k,sourceType:'TEMPERATURE',sourceId:k,label:`${e.equipment_name} ${t==='START'?'始業時':'終業時'} ${v}℃`})}}));return a}
-function renderActions(){actions.innerHTML='';const ps=problems();if(!ps.length){actions.innerHTML='<div class="notice">現在、不備・基準外項目はありません。</div>';return}ps.forEach(p=>{if(!S.actions[p.key])S.actions[p.key]={sourceType:p.sourceType,sourceId:p.sourceId,problem:p.label,cause:'',actionTaken:'',resolutionStatus:'RESOLVED',recheckValue:''};const a=S.actions[p.key],d=document.createElement('div');d.className='problem';d.innerHTML=`<strong>${esc(p.label)}</strong><br><br><label class="muted">不備内容 *</label><textarea oninput="ua('${p.key}','problem',this.value)">${esc(a.problem)}</textarea><label class="muted">原因</label><textarea oninput="ua('${p.key}','cause',this.value)">${esc(a.cause)}</textarea><label class="muted">対応内容 *</label><textarea oninput="ua('${p.key}','actionTaken',this.value)">${esc(a.actionTaken)}</textarea><div class="choices no-print"><button class="choice ${a.resolutionStatus==='RESOLVED'?'selected OK':''}" onclick="ua('${p.key}','resolutionStatus','RESOLVED');renderActions()">○ 改善済み</button><button class="choice ${a.resolutionStatus==='OPEN'?'selected NG':''}" onclick="ua('${p.key}','resolutionStatus','OPEN');renderActions()">継続対応中</button></div>${p.sourceType==='TEMPERATURE'?`<label class="muted">再確認温度</label><input type="number" step="0.1" value="${esc(a.recheckValue)}" oninput="ua('${p.key}','recheckValue',this.value)">`:''}`;actions.appendChild(d)})}function ua(k,f,v){if(!S.actions[k])S.actions[k]={};S.actions[k][f]=v}
-function payload(){return{date:BOOT.today,revisionReason:revisionReason.value.trim(),details:BOOT.hygieneItems.filter(i=>S.details[i.item_id]).map(i=>({itemId:i.item_id,result:S.details[i.item_id],comment:''})),temperatures:['START','END'].flatMap(t=>BOOT.equipment.filter(e=>S.temperatures[t][e.equipment_id]!==undefined).map(e=>({equipmentId:e.equipment_id,timing:t,temperature:S.temperatures[t][e.equipment_id]}))),actions:Object.values(S.actions).filter(a=>a&&String(a.actionTaken||'').trim())}}
-function validate(){const m=BOOT.hygieneItems.filter(i=>!S.details[i.item_id]);if(m.length)return`未入力の衛生確認項目が ${m.length} 件あります。`;let n=0;['START','END'].forEach(t=>BOOT.equipment.forEach(e=>{if(S.temperatures[t][e.equipment_id]===undefined)n++}));if(n)return`未入力の温度が ${n} 件あります。`;for(const p of problems()){const a=S.actions[p.key];if(!a||!String(a.problem||'').trim()||!String(a.actionTaken||'').trim())return'不備・基準外項目の対応内容を入力してください。'}return''}
-function post(a,p,d=''){apiAction.value=a;apiPayload.value=p?JSON.stringify(p):'';apiDate.value=d;apiWriteForm.submit()}
-async function wait(pred,tries=16){let r;for(let i=0;i<tries;i++){await new Promise(x=>setTimeout(x,i?550:800));try{r=await jp({action:'daily',date:BOOT.today});if(pred(r))return r}catch(_){}}throw new Error('保存結果を確認できませんでした。画面を再読み込みして記録をご確認ください。')}
-async function saveDraft(){try{msg('下書きを保存しています...','saving');post('saveDailyRecord',payload());loadRecord(await wait(r=>r?.exists&&r.status==='DRAFT'));msg('下書きを保存しました。','notice')}catch(e){err(e)}}
-async function confirmRecord(){const v=validate();if(v)return err(new Error(v));try{msg('本日の記録を確定しています...','saving');post('saveAndConfirmDailyRecord',payload());loadRecord(await wait(r=>r?.exists&&r.status==='CONFIRMED',20));msg('本日の記録を確定しました。','notice');showView('home')}catch(e){err(e)}}
-function home(){const r=RECORD||{status:'EMPTY',details:[],temperatures:[]};overallStatus.textContent=r.status==='CONFIRMED'?'確定済み':r.exists?'下書き':'未入力';overallStatus.className='status '+(r.status==='CONFIRMED'?'ok':r.exists?'ng':'empty');const dm={},tm={};(r.details||[]).forEach(d=>dm[d.item_id]=d.result);(r.temperatures||[]).forEach(t=>tm[t.equipment_id+':'+t.timing]=t.temperature);const x=[['始業時確認',BOOT.hygieneItems.filter(i=>i.timing==='START').every(i=>dm[i.item_id])],['始業時温度',BOOT.equipment.every(e=>tm[e.equipment_id+':START']!==undefined)],['受入確認',BOOT.hygieneItems.filter(i=>i.timing==='RECEIVING').every(i=>dm[i.item_id])],['製造時確認',BOOT.hygieneItems.filter(i=>i.timing==='PRODUCTION').every(i=>dm[i.item_id])],['終業時確認',BOOT.hygieneItems.filter(i=>i.timing==='END').every(i=>dm[i.item_id])],['終業時温度',BOOT.equipment.every(e=>tm[e.equipment_id+':END']!==undefined)]];homeGrid.innerHTML=x.map(([l,d])=>`<div class="status-card"><div>${l}</div><div class="status ${d?'ok':'empty'}">${d?'完了':'未入力'}</div></div>`).join('')}
-async function loadHistory(){try{const rows=await jp({action:'monthly',yearMonth:historyMonth.value});historyTable.innerHTML=rows.length?`<table><thead><tr><th>日付</th><th>状態</th><th>不備</th><th>記録者</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.date)}</td><td>${r.status==='CONFIRMED'?'確定':'下書き'}</td><td>${Number(r.problemCount||0)}</td><td>${esc(r.operator||'')}</td></tr>`).join('')}</tbody></table>`:'<div class="notice">この月の記録はありません。</div>'}catch(e){err(e)}}historyMonth.onchange=loadHistory;
-async function loadPlan(){try{const p=await jp({action:'plan'});planContent.innerHTML=`<p><strong>製造所：</strong>${esc(p.facility)}<br><strong>食品衛生責任者：</strong>${esc(p.manager)}<br><strong>使用水：</strong>${esc(p.water)}<br><strong>金属探知機：</strong>${esc(p.metalDetector)}<br><strong>記録保存：</strong>${esc(p.storagePeriod)}</p><h3>温度管理対象</h3><table><tbody>${(p.temperatureTargets||[]).map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.standard)}</td></tr>`).join('')}</tbody></table>${p.sections.map(s=>`<h3>${esc(s.title)}</h3><p>${esc(s.body)}</p>`).join('')}`}catch(e){err(e)}}
-function dateJP(s){const d=new Date(s+'T00:00:00');return`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}function msg(s,c){message.innerHTML=`<div class="${c}">${esc(s)}</div>`}function err(e){msg(e?.message||String(e),'error');scrollTo({top:0,behavior:'smooth'})}function clearMsg(){message.innerHTML=''}function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));init();
-</script>
-</body></html>
+  <header>
+    <div class="wrap head">
+      <div>
+        <div class="title">梅園 衛生管理記録</div>
+        <div class="sub" id="headerSub">第一製造部</div>
+      </div>
+      <div class="sub">v0.4_work</div>
+    </div>
+  </header>
+
+  <main>
+    <div id="authBlocked" class="card auth-block hidden">
+      <h2>梅園ポータルの端末認証が必要です</h2>
+      <p>
+        この端末を第一製造部の共有アカウントで梅園ポータルへログインしてから、
+        衛生管理記録を開いてください。
+      </p>
+      <a class="link-button" href="https://umezono-systems.github.io/umezono-portal/">梅園ポータルを開く</a>
+      <br><br>
+      <button class="secondary" type="button" onclick="location.reload()">認証後に再確認</button>
+    </div>
+
+    <div id="appArea">
+      <div class="tabs no-print">
+        <button class="tab active" data-view="home">ホーム</button>
+        <button class="tab" data-view="today">今日の記録</button>
+        <button class="tab" data-view="history">記録一覧</button>
+        <button class="tab" data-view="plan">衛生管理計画</button>
+      </div>
+
+      <div id="message"></div>
+
+      <section id="view-home">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2 id="todayLabel">本日の記録</h2>
+              <div class="muted" id="deviceLabel">端末認証確認中...</div>
+            </div>
+            <div id="overallStatus" class="status empty">確認中</div>
+          </div>
+
+          <div id="confirmedByLabel" class="record-meta hidden"></div>
+          <br>
+          <div class="grid" id="homeGrid"></div>
+          <br>
+          <button class="primary no-print" type="button" onclick="showView('today')">
+            今日の記録を入力
+          </button>
+        </div>
+      </section>
+
+      <section id="view-today" class="hidden">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>日次衛生管理</h2>
+              <div class="muted" id="recordDateLabel"></div>
+            </div>
+            <button id="draftButton" class="secondary no-print" type="button" onclick="saveDraft()">
+              下書き保存
+            </button>
+          </div>
+          <div id="confirmedEditNote" class="warning hidden">
+            この日は確定済みです。修正する場合は内容を直し、修正理由を入力してから再度「本日の記録を確定」してください。
+          </div>
+        </div>
+
+        <div id="sections"></div>
+
+        <div class="card">
+          <h2>始業時温度</h2>
+          <div id="tempStart"></div>
+        </div>
+
+        <div class="card">
+          <h2>終業時温度</h2>
+          <div id="tempEnd"></div>
+        </div>
+
+        <div class="card">
+          <h2>不備・改善対応</h2>
+          <div class="muted">
+            「不備あり」または温度基準外の項目について、対応内容を記録してください。
+          </div>
+          <div id="actions"></div>
+        </div>
+
+        <div class="card">
+          <label class="muted">確定済み記録を修正する場合の理由</label>
+          <input id="revisionReason" placeholder="例：終業時温度の入力値を訂正">
+          <br><br>
+          <button class="primary no-print" type="button" onclick="confirmRecord()">
+            本日の記録を確定
+          </button>
+        </div>
+      </section>
+
+      <section id="view-history" class="hidden">
+        <div class="card">
+          <div class="section-head">
+            <h2>記録一覧</h2>
+            <input type="month" id="historyMonth" style="max-width:170px">
+          </div>
+          <div id="historyTable"></div>
+        </div>
+      </section>
+
+      <section id="view-plan" class="hidden">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>第一製造部 衛生管理計画</h2>
+              <div class="muted">食品衛生責任者：西川 周一郎</div>
+            </div>
+            <button class="secondary no-print" type="button" onclick="window.print()">
+              印刷 / PDF
+            </button>
+          </div>
+          <div id="planContent"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="operatorModal" class="modal-backdrop hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="operatorModalTitle">
+      <div class="modal-title" id="operatorModalTitle">記録者の確認</div>
+      <p class="muted">
+        この記録を確定する方の社員番号を入力してください。
+      </p>
+
+      <label class="muted" for="operatorEmployeeNo">社員番号</label>
+      <input id="operatorEmployeeNo" inputmode="numeric" autocomplete="off" placeholder="社員番号">
+
+      <div id="operatorModalMessage"></div>
+      <div id="operatorSummary" class="operator-summary hidden"></div>
+
+      <div class="row no-print">
+        <button class="secondary" type="button" onclick="closeOperatorModal()">キャンセル</button>
+        <button id="operatorLookupButton" class="secondary" type="button" onclick="lookupOperator()">
+          氏名を確認
+        </button>
+        <button id="operatorConfirmButton" class="primary" style="width:auto;flex:1" type="button"
+          onclick="executeConfirmAsOperator()" disabled>
+          この社員で確定
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <iframe name="apiWriteFrame" id="apiWriteFrame" class="hidden"></iframe>
+
+  <form id="apiWriteForm" method="post" target="apiWriteFrame" action="https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec" class="hidden">
+    <input type="hidden" name="action" id="apiAction">
+    <input type="hidden" name="payload" id="apiPayload">
+    <input type="hidden" name="date" id="apiDate">
+    <input type="hidden" name="sessionToken" id="apiSessionToken">
+    <input type="hidden" name="operatorEmployeeNo" id="apiOperatorEmployeeNo">
+    <input type="hidden" name="portalDeviceCredential" id="apiPortalDeviceCredential">
+    <input type="hidden" name="clientNonce" id="apiClientNonce">
+  </form>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
+    const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
+    const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.4-session";
+
+    let BOOT = null;
+    let RECORD = null;
+    let SESSION_TOKEN = "";
+    let JSONP_SEQUENCE = 0;
+    let SELECTED_OPERATOR = null;
+
+    const state = {
+      details: {},
+      temperatures: { START: {}, END: {} },
+      actions: {}
+    };
+
+    const el = id => document.getElementById(id);
+
+    document.querySelectorAll(".tab").forEach(button => {
+      button.addEventListener("click", () => showView(button.dataset.view));
+    });
+
+    el("operatorEmployeeNo").addEventListener("input", () => {
+      SELECTED_OPERATOR = null;
+      el("operatorSummary").classList.add("hidden");
+      el("operatorSummary").textContent = "";
+      el("operatorConfirmButton").disabled = true;
+      setOperatorModalMessage("");
+    });
+
+    function showView(view) {
+      document.querySelectorAll('section[id^="view-"]').forEach(section => {
+        section.classList.add("hidden");
+      });
+
+      el("view-" + view).classList.remove("hidden");
+
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.classList.toggle("active", tab.dataset.view === view);
+      });
+
+      if (view === "history") loadHistory();
+      if (view === "plan") loadPlan();
+    }
+
+    function jsonp(params, options = {}) {
+      return new Promise((resolve, reject) => {
+        const callback = "__hygiene_jsonp_" + (++JSONP_SEQUENCE);
+        const script = document.createElement("script");
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("API応答がタイムアウトしました。"));
+        }, 15000);
+
+        function cleanup() {
+          window.clearTimeout(timeout);
+          delete window[callback];
+          script.remove();
+        }
+
+        window[callback] = response => {
+          cleanup();
+
+          if (!response || response.ok !== true) {
+            reject(new Error(response?.error?.message || "APIエラー"));
+            return;
+          }
+
+          resolve(response.data);
+        };
+
+        const url = new URL(API_URL);
+
+        Object.entries(params || {}).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== "") {
+            url.searchParams.set(key, value);
+          }
+        });
+
+        if (!options.public && SESSION_TOKEN) {
+          url.searchParams.set("sessionToken", SESSION_TOKEN);
+        }
+
+        url.searchParams.set("callback", callback);
+        script.src = url.toString();
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("衛生管理APIへ接続できませんでした。"));
+        };
+
+        document.head.appendChild(script);
+      });
+    }
+
+    function readPortalDeviceCredential() {
+      try {
+        const raw = window.localStorage.getItem(PORTAL_DEVICE_AUTH_STORAGE_KEY);
+        if (!raw) return "";
+
+        const saved = JSON.parse(raw);
+        return String(saved?.deviceCredential || "");
+      } catch (error) {
+        return "";
+      }
+    }
+
+    function randomNonce() {
+      if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID().replace(/-/g, "");
+      }
+
+      if (window.crypto?.getRandomValues) {
+        const values = new Uint32Array(4);
+        window.crypto.getRandomValues(values);
+        return Array.from(values)
+          .map(value => value.toString(16).padStart(8, "0"))
+          .join("");
+      }
+
+      return String(Date.now()) + Math.random().toString(36).slice(2);
+    }
+
+    async function establishHygieneSession() {
+      const stored = window.sessionStorage.getItem(HYGIENE_SESSION_STORAGE_KEY) || "";
+
+      if (stored) {
+        SESSION_TOKEN = stored;
+
+        try {
+          await jsonp({ action:"authStatus" });
+          return true;
+        } catch (error) {
+          SESSION_TOKEN = "";
+          window.sessionStorage.removeItem(HYGIENE_SESSION_STORAGE_KEY);
+        }
+      }
+
+      const portalCredential = readPortalDeviceCredential();
+
+      if (!portalCredential) {
+        showAuthBlocked();
+        return false;
+      }
+
+      const nonce = randomNonce();
+
+      submitForm("createSession", {
+        portalDeviceCredential: portalCredential,
+        clientNonce: nonce
+      });
+
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        await sleep(attempt === 0 ? 700 : 450);
+
+        try {
+          const result = await jsonp(
+            { action:"claimSession", clientNonce:nonce },
+            { public:true }
+          );
+
+          if (!result?.ready) continue;
+
+          SESSION_TOKEN = String(result.sessionToken || "");
+
+          if (!SESSION_TOKEN) {
+            throw new Error("認証セッションを取得できませんでした。");
+          }
+
+          window.sessionStorage.setItem(
+            HYGIENE_SESSION_STORAGE_KEY,
+            SESSION_TOKEN
+          );
+
+          return true;
+
+        } catch (error) {
+          if (attempt >= 19) throw error;
+        }
+      }
+
+      throw new Error("梅園ポータルの端末認証を引き継げませんでした。");
+    }
+
+    function showAuthBlocked() {
+      el("authBlocked").classList.remove("hidden");
+      el("appArea").classList.add("hidden");
+    }
+
+    async function init() {
+      try {
+        showMessage("梅園ポータルの端末認証を確認しています...", "saving");
+
+        const authenticated = await establishHygieneSession();
+        if (!authenticated) return;
+
+        BOOT = await jsonp({ action:"bootstrap" });
+
+        const device = BOOT?.auth?.device || {};
+
+        el("headerSub").textContent =
+          (BOOT.facility?.facility_name || "第一製造部") + " ・ " + BOOT.appVersion;
+
+        el("todayLabel").textContent = formatDateJP(BOOT.today) + " の記録";
+        el("recordDateLabel").textContent = formatDateJP(BOOT.today);
+        el("historyMonth").value = BOOT.today.slice(0, 7);
+
+        const deviceName = device.display_name || "共有アカウント";
+        el("deviceLabel").textContent =
+          "端末認証：" + deviceName + " / 共有";
+
+        renderForms();
+
+        const record = await jsonp({ action:"today" });
+        loadRecordIntoState(record);
+        clearMessage();
+
+      } catch (error) {
+        const text = String(error?.message || error);
+
+        if (
+          text.includes("ポータル") ||
+          text.includes("認証") ||
+          text.includes("共有アカウント")
+        ) {
+          showAuthBlocked();
+          el("appArea").classList.add("hidden");
+        } else {
+          showError(error);
+        }
+      }
+    }
+
+    function renderForms() {
+      const timings = [
+        ["START", "始業時確認"],
+        ["RECEIVING", "受入確認"],
+        ["PRODUCTION", "製造時確認"],
+        ["END", "終業時確認"]
+      ];
+
+      const wrapper = el("sections");
+      wrapper.innerHTML = "";
+
+      timings.forEach(([timing, label]) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <div class="section-head">
+            <h2>${label}</h2>
+            <div class="row no-print">
+              ${timing === "RECEIVING"
+                ? '<button class="secondary" type="button" onclick="setReceivingNA()">本日は受入なし</button>'
+                : ""}
+              <button class="secondary" type="button" onclick="setAllOK('${timing}')">
+                この区分をすべて良好
+              </button>
+            </div>
+          </div>
+          <div id="items-${timing}"></div>
+        `;
+
+        wrapper.appendChild(card);
+
+        const itemBox = card.querySelector("#items-" + timing);
+
+        BOOT.hygieneItems
+          .filter(item => item.timing === timing)
+          .forEach(item => itemBox.appendChild(renderItem(item)));
+      });
+
+      renderTemperatures("START", el("tempStart"));
+      renderTemperatures("END", el("tempEnd"));
+    }
+
+    function renderItem(item) {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.id = "item-" + item.item_id;
+
+      const allowNA =
+        item.allow_na === true ||
+        String(item.allow_na).toLowerCase() === "true";
+
+      div.innerHTML = `
+        <div class="item-name">${escapeHtml(item.item_name)}</div>
+        <div class="choices no-print">
+          <button class="choice" data-result="OK" type="button"
+            onclick="setResult('${item.item_id}','OK')">○ 良好</button>
+          <button class="choice" data-result="NG" type="button"
+            onclick="setResult('${item.item_id}','NG')">× 不備あり</button>
+          ${allowNA
+            ? `<button class="choice" data-result="NA" type="button"
+                onclick="setResult('${item.item_id}','NA')">－ 対象なし</button>`
+            : ""}
+        </div>
+      `;
+
+      return div;
+    }
+
+    function renderTemperatures(timing, box) {
+      box.innerHTML = "";
+
+      BOOT.equipment.forEach(equipment => {
+        const row = document.createElement("div");
+        row.className = "temp-row";
+
+        row.innerHTML = `
+          <div>${escapeHtml(equipment.equipment_name)}</div>
+          <input
+            type="number"
+            step="0.1"
+            inputmode="decimal"
+            id="temp-${timing}-${equipment.equipment_id}"
+            oninput="onTemperatureInput('${timing}','${equipment.equipment_id}',this.value)"
+          >
+          <div class="temp-result" id="temp-result-${timing}-${equipment.equipment_id}">
+            未入力
+          </div>
+        `;
+
+        box.appendChild(row);
+      });
+    }
+
+    function loadRecordIntoState(record) {
+      RECORD = record;
+
+      BOOT.hygieneItems.forEach(item => {
+        state.details[item.item_id] = "";
+      });
+
+      state.temperatures = { START:{}, END:{} };
+      state.actions = {};
+
+      (record.details || []).forEach(detail => {
+        state.details[detail.item_id] = detail.result;
+      });
+
+      (record.temperatures || []).forEach(temp => {
+        if (state.temperatures[temp.timing]) {
+          state.temperatures[temp.timing][temp.equipment_id] =
+            Number(temp.temperature);
+        }
+      });
+
+      (record.actions || []).forEach(action => {
+        state.actions[action.source_id] = {
+          sourceType: action.source_type,
+          sourceId: action.source_id,
+          problem: action.problem || "",
+          cause: action.cause || "",
+          actionTaken: action.action_taken || "",
+          resolutionStatus: action.resolution_status || "RESOLVED",
+          recheckValue: action.recheck_value || ""
+        };
+      });
+
+      el("revisionReason").value = "";
+
+      const confirmed = record?.status === "CONFIRMED";
+      el("draftButton").disabled = confirmed;
+      el("confirmedEditNote").classList.toggle("hidden", !confirmed);
+
+      refreshUI();
+      refreshHome();
+    }
+
+    function refreshUI() {
+      BOOT.hygieneItems.forEach(item => {
+        const node = el("item-" + item.item_id);
+        if (!node) return;
+
+        node.querySelectorAll(".choice").forEach(button => {
+          const result = button.dataset.result;
+
+          button.classList.remove("selected", "OK", "NG", "NA");
+
+          if (state.details[item.item_id] === result) {
+            button.classList.add("selected", result);
+          }
+        });
+      });
+
+      ["START","END"].forEach(timing => {
+        BOOT.equipment.forEach(equipment => {
+          const input = el(`temp-${timing}-${equipment.equipment_id}`);
+          const value = state.temperatures[timing][equipment.equipment_id];
+
+          input.value = (value === 0 || value) ? value : "";
+          updateTemperatureResult(timing, equipment, value);
+        });
+      });
+
+      renderActions();
+    }
+
+    function setResult(itemId, result) {
+      state.details[itemId] = result;
+
+      if (result !== "NG") {
+        delete state.actions[itemId];
+      }
+
+      refreshUI();
+    }
+
+    function setAllOK(timing) {
+      BOOT.hygieneItems
+        .filter(item => item.timing === timing)
+        .forEach(item => {
+          state.details[item.item_id] = "OK";
+        });
+
+      refreshUI();
+    }
+
+    function setReceivingNA() {
+      BOOT.hygieneItems
+        .filter(item => item.timing === "RECEIVING")
+        .forEach(item => {
+          state.details[item.item_id] = "NA";
+        });
+
+      refreshUI();
+    }
+
+    function onTemperatureInput(timing, equipmentId, value) {
+      if (value === "") {
+        delete state.temperatures[timing][equipmentId];
+      } else {
+        state.temperatures[timing][equipmentId] = Number(value);
+      }
+
+      const equipment =
+        BOOT.equipment.find(item => item.equipment_id === equipmentId);
+
+      const actionKey = equipmentId + ":" + timing;
+
+      if (
+        getTemperatureStatus(
+          equipment,
+          state.temperatures[timing][equipmentId]
+        ) !== "NG"
+      ) {
+        delete state.actions[actionKey];
+      }
+
+      updateTemperatureResult(
+        timing,
+        equipment,
+        state.temperatures[timing][equipmentId]
+      );
+
+      renderActions();
+    }
+
+    function getTemperatureStatus(equipment, value) {
+      if (
+        value === undefined ||
+        value === null ||
+        Number.isNaN(Number(value))
+      ) {
+        return "";
+      }
+
+      return Number(value) <= Number(equipment.max_temperature)
+        ? "OK"
+        : "NG";
+    }
+
+    function updateTemperatureResult(timing, equipment, value) {
+      const node =
+        el(`temp-result-${timing}-${equipment.equipment_id}`);
+
+      const status = getTemperatureStatus(equipment, value);
+
+      node.className =
+        "temp-result " +
+        (status === "OK" ? "ok" : status === "NG" ? "ng" : "");
+
+      node.textContent =
+        status === "OK"
+          ? "正常"
+          : status === "NG"
+            ? "基準外"
+            : "未入力";
+    }
+
+    function collectProblems() {
+      const problems = [];
+
+      BOOT.hygieneItems.forEach(item => {
+        if (state.details[item.item_id] === "NG") {
+          problems.push({
+            key: item.item_id,
+            sourceType: "HYGIENE",
+            sourceId: item.item_id,
+            label: item.item_name
+          });
+        }
+      });
+
+      ["START","END"].forEach(timing => {
+        BOOT.equipment.forEach(equipment => {
+          const value =
+            state.temperatures[timing][equipment.equipment_id];
+
+          if (getTemperatureStatus(equipment, value) === "NG") {
+            const key = equipment.equipment_id + ":" + timing;
+
+            problems.push({
+              key,
+              sourceType: "TEMPERATURE",
+              sourceId: key,
+              label:
+                equipment.equipment_name +
+                " " +
+                (timing === "START" ? "始業時" : "終業時") +
+                " " +
+                value +
+                "℃"
+            });
+          }
+        });
+      });
+
+      return problems;
+    }
+
+    function renderActions() {
+      const area = el("actions");
+      area.innerHTML = "";
+
+      const problems = collectProblems();
+
+      if (!problems.length) {
+        area.innerHTML =
+          '<div class="notice">現在、不備・基準外項目はありません。</div>';
+        return;
+      }
+
+      problems.forEach(problem => {
+        if (!state.actions[problem.key]) {
+          state.actions[problem.key] = {
+            sourceType: problem.sourceType,
+            sourceId: problem.sourceId,
+            problem: problem.label,
+            cause: "",
+            actionTaken: "",
+            resolutionStatus: "RESOLVED",
+            recheckValue: ""
+          };
+        }
+
+        const action = state.actions[problem.key];
+        const div = document.createElement("div");
+        div.className = "problem";
+
+        div.innerHTML = `
+          <strong>${escapeHtml(problem.label)}</strong>
+          <br><br>
+
+          <label class="muted">不備内容 *</label>
+          <textarea oninput="updateAction('${problem.key}','problem',this.value)">${escapeHtml(action.problem)}</textarea>
+
+          <label class="muted">原因</label>
+          <textarea oninput="updateAction('${problem.key}','cause',this.value)">${escapeHtml(action.cause)}</textarea>
+
+          <label class="muted">対応内容 *</label>
+          <textarea oninput="updateAction('${problem.key}','actionTaken',this.value)">${escapeHtml(action.actionTaken)}</textarea>
+
+          <div class="choices no-print">
+            <button class="choice ${action.resolutionStatus === "RESOLVED" ? "selected OK" : ""}"
+              type="button"
+              onclick="updateAction('${problem.key}','resolutionStatus','RESOLVED');renderActions()">
+              ○ 改善済み
+            </button>
+
+            <button class="choice ${action.resolutionStatus === "OPEN" ? "selected NG" : ""}"
+              type="button"
+              onclick="updateAction('${problem.key}','resolutionStatus','OPEN');renderActions()">
+              継続対応中
+            </button>
+          </div>
+
+          ${problem.sourceType === "TEMPERATURE"
+            ? `<label class="muted">再確認温度</label>
+               <input type="number" step="0.1"
+                 value="${escapeHtml(action.recheckValue)}"
+                 oninput="updateAction('${problem.key}','recheckValue',this.value)">`
+            : ""}
+        `;
+
+        area.appendChild(div);
+      });
+    }
+
+    function updateAction(key, field, value) {
+      if (!state.actions[key]) state.actions[key] = {};
+      state.actions[key][field] = value;
+    }
+
+    function buildPayload() {
+      return {
+        date: BOOT.today,
+        revisionReason: el("revisionReason").value.trim(),
+
+        details: BOOT.hygieneItems
+          .filter(item => state.details[item.item_id])
+          .map(item => ({
+            itemId: item.item_id,
+            result: state.details[item.item_id],
+            comment: ""
+          })),
+
+        temperatures: ["START","END"].flatMap(timing =>
+          BOOT.equipment
+            .filter(equipment =>
+              state.temperatures[timing][equipment.equipment_id] !== undefined
+            )
+            .map(equipment => ({
+              equipmentId: equipment.equipment_id,
+              timing,
+              temperature:
+                state.temperatures[timing][equipment.equipment_id]
+            }))
+        ),
+
+        actions: Object.values(state.actions)
+          .filter(action =>
+            action && String(action.actionTaken || "").trim()
+          )
+      };
+    }
+
+    function validateBeforeConfirm() {
+      const missingItems =
+        BOOT.hygieneItems.filter(item => !state.details[item.item_id]);
+
+      if (missingItems.length) {
+        return `未入力の衛生確認項目が ${missingItems.length} 件あります。`;
+      }
+
+      let missingTemperatures = 0;
+
+      ["START","END"].forEach(timing => {
+        BOOT.equipment.forEach(equipment => {
+          if (
+            state.temperatures[timing][equipment.equipment_id] === undefined
+          ) {
+            missingTemperatures += 1;
+          }
+        });
+      });
+
+      if (missingTemperatures) {
+        return `未入力の温度が ${missingTemperatures} 件あります。`;
+      }
+
+      for (const problem of collectProblems()) {
+        const action = state.actions[problem.key];
+
+        if (
+          !action ||
+          !String(action.problem || "").trim() ||
+          !String(action.actionTaken || "").trim()
+        ) {
+          return "不備・基準外項目の対応内容を入力してください。";
+        }
+      }
+
+      if (
+        RECORD?.status === "CONFIRMED" &&
+        !el("revisionReason").value.trim()
+      ) {
+        return "確定済み記録を修正する場合は、修正理由を入力してください。";
+      }
+
+      return "";
+    }
+
+    function submitForm(action, values = {}) {
+      el("apiAction").value = action || "";
+      el("apiPayload").value =
+        values.payload ? JSON.stringify(values.payload) : "";
+      el("apiDate").value = values.date || "";
+      el("apiSessionToken").value =
+        values.sessionToken !== undefined
+          ? values.sessionToken
+          : SESSION_TOKEN;
+      el("apiOperatorEmployeeNo").value =
+        values.operatorEmployeeNo || "";
+      el("apiPortalDeviceCredential").value =
+        values.portalDeviceCredential || "";
+      el("apiClientNonce").value =
+        values.clientNonce || "";
+
+      el("apiWriteForm").submit();
+
+      // ポータルの端末credentialはDOMへ残さない。
+      el("apiPortalDeviceCredential").value = "";
+    }
+
+    async function waitForRecord(predicate, attempts = 18) {
+      let last = null;
+
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        await sleep(attempt === 0 ? 800 : 550);
+
+        try {
+          last = await jsonp({
+            action:"daily",
+            date:BOOT.today
+          });
+
+          if (predicate(last)) return last;
+        } catch (error) {
+          // 書込完了待ちの途中では次の試行へ。
+        }
+      }
+
+      throw new Error(
+        "保存結果を確認できませんでした。画面を再読み込みして記録をご確認ください。"
+      );
+    }
+
+    async function saveDraft() {
+      if (RECORD?.status === "CONFIRMED") {
+        showError(
+          new Error(
+            "確定済み記録は下書きへ戻さず、修正理由を入力して再確定してください。"
+          )
+        );
+        return;
+      }
+
+      try {
+        showMessage("下書きを保存しています...", "saving");
+
+        submitForm("saveDailyRecord", {
+          payload: buildPayload()
+        });
+
+        const record = await waitForRecord(
+          item => item?.exists && item.status === "DRAFT"
+        );
+
+        loadRecordIntoState(record);
+        showMessage("下書きを保存しました。", "notice");
+
+      } catch (error) {
+        showError(error);
+      }
+    }
+
+    function confirmRecord() {
+      const error = validateBeforeConfirm();
+
+      if (error) {
+        showError(new Error(error));
+        return;
+      }
+
+      openOperatorModal();
+    }
+
+    function openOperatorModal() {
+      SELECTED_OPERATOR = null;
+      el("operatorEmployeeNo").value = "";
+      el("operatorSummary").textContent = "";
+      el("operatorSummary").classList.add("hidden");
+      el("operatorConfirmButton").disabled = true;
+      setOperatorModalMessage("");
+
+      el("operatorModal").classList.remove("hidden");
+      el("operatorModal").setAttribute("aria-hidden", "false");
+
+      window.setTimeout(() => {
+        el("operatorEmployeeNo").focus();
+      }, 0);
+    }
+
+    function closeOperatorModal() {
+      if (el("operatorConfirmButton").disabled === false &&
+          el("operatorConfirmButton").dataset.busy === "true") {
+        return;
+      }
+
+      el("operatorModal").classList.add("hidden");
+      el("operatorModal").setAttribute("aria-hidden", "true");
+      SELECTED_OPERATOR = null;
+    }
+
+    function setOperatorModalMessage(text, type = "notice") {
+      const box = el("operatorModalMessage");
+
+      if (!text) {
+        box.innerHTML = "";
+        return;
+      }
+
+      box.innerHTML =
+        `<div class="${type}" style="margin-top:12px">${escapeHtml(text)}</div>`;
+    }
+
+    async function lookupOperator() {
+      const employeeNo =
+        String(el("operatorEmployeeNo").value || "").trim();
+
+      if (!employeeNo) {
+        setOperatorModalMessage("社員番号を入力してください。", "error");
+        return;
+      }
+
+      try {
+        el("operatorLookupButton").disabled = true;
+        setOperatorModalMessage("社員情報を確認しています...", "saving");
+
+        const result = await jsonp({
+          action:"resolveOperator",
+          employeeNo
+        });
+
+        const operator = result || {};
+
+        if (!operator.employee_id || !operator.employee_no) {
+          throw new Error("社員情報を確認できませんでした。");
+        }
+
+        SELECTED_OPERATOR = operator;
+
+        el("operatorSummary").textContent =
+          (operator.display_name || "氏名未設定") +
+          " / 社員番号 " +
+          operator.employee_no;
+
+        el("operatorSummary").classList.remove("hidden");
+        el("operatorConfirmButton").disabled = false;
+
+        setOperatorModalMessage(
+          "氏名を確認し、ご本人であれば「この社員で確定」を押してください。",
+          "notice"
+        );
+
+      } catch (error) {
+        SELECTED_OPERATOR = null;
+        el("operatorConfirmButton").disabled = true;
+        setOperatorModalMessage(
+          error?.message || String(error),
+          "error"
+        );
+
+      } finally {
+        el("operatorLookupButton").disabled = false;
+      }
+    }
+
+    async function executeConfirmAsOperator() {
+      if (!SELECTED_OPERATOR?.employee_no) {
+        setOperatorModalMessage(
+          "先に社員番号から氏名を確認してください。",
+          "error"
+        );
+        return;
+      }
+
+      try {
+        el("operatorConfirmButton").disabled = true;
+        el("operatorConfirmButton").dataset.busy = "true";
+        el("operatorLookupButton").disabled = true;
+
+        setOperatorModalMessage(
+          "本日の記録を確定しています...",
+          "saving"
+        );
+
+        submitForm("saveAndConfirmDailyRecord", {
+          payload: buildPayload(),
+          operatorEmployeeNo: SELECTED_OPERATOR.employee_no
+        });
+
+        const expectedEmployeeNo = SELECTED_OPERATOR.employee_no;
+
+        const record = await waitForRecord(
+          item =>
+            item?.exists &&
+            item.status === "CONFIRMED" &&
+            String(item.operatorEmployeeNo || "") === expectedEmployeeNo,
+          22
+        );
+
+        loadRecordIntoState(record);
+        closeOperatorModal();
+
+        showMessage(
+          `${record.operator || "記録者"}として本日の記録を確定しました。`,
+          "notice"
+        );
+
+        showView("home");
+
+      } catch (error) {
+        setOperatorModalMessage(
+          error?.message || String(error),
+          "error"
+        );
+
+      } finally {
+        el("operatorConfirmButton").dataset.busy = "false";
+        el("operatorConfirmButton").disabled =
+          !SELECTED_OPERATOR?.employee_no;
+        el("operatorLookupButton").disabled = false;
+      }
+    }
+
+    function refreshHome() {
+      const record = RECORD || {
+        status:"EMPTY",
+        details:[],
+        temperatures:[]
+      };
+
+      el("overallStatus").textContent =
+        record.status === "CONFIRMED"
+          ? "確定済み"
+          : record.exists
+            ? "下書き"
+            : "未入力";
+
+      el("overallStatus").className =
+        "status " +
+        (record.status === "CONFIRMED"
+          ? "ok"
+          : record.exists
+            ? "ng"
+            : "empty");
+
+      const confirmedLabel = el("confirmedByLabel");
+
+      if (record.status === "CONFIRMED" && record.operator) {
+        confirmedLabel.textContent =
+          "確定記録者：" +
+          record.operator +
+          (record.operatorEmployeeNo
+            ? " / 社員番号 " + record.operatorEmployeeNo
+            : "");
+
+        confirmedLabel.classList.remove("hidden");
+      } else {
+        confirmedLabel.classList.add("hidden");
+        confirmedLabel.textContent = "";
+      }
+
+      const detailMap = {};
+      const temperatureMap = {};
+
+      (record.details || []).forEach(detail => {
+        detailMap[detail.item_id] = detail.result;
+      });
+
+      (record.temperatures || []).forEach(temp => {
+        temperatureMap[temp.equipment_id + ":" + temp.timing] =
+          temp.temperature;
+      });
+
+      const sections = [
+        [
+          "始業時確認",
+          BOOT.hygieneItems
+            .filter(item => item.timing === "START")
+            .every(item => detailMap[item.item_id])
+        ],
+        [
+          "始業時温度",
+          BOOT.equipment.every(
+            equipment =>
+              temperatureMap[equipment.equipment_id + ":START"] !== undefined
+          )
+        ],
+        [
+          "受入確認",
+          BOOT.hygieneItems
+            .filter(item => item.timing === "RECEIVING")
+            .every(item => detailMap[item.item_id])
+        ],
+        [
+          "製造時確認",
+          BOOT.hygieneItems
+            .filter(item => item.timing === "PRODUCTION")
+            .every(item => detailMap[item.item_id])
+        ],
+        [
+          "終業時確認",
+          BOOT.hygieneItems
+            .filter(item => item.timing === "END")
+            .every(item => detailMap[item.item_id])
+        ],
+        [
+          "終業時温度",
+          BOOT.equipment.every(
+            equipment =>
+              temperatureMap[equipment.equipment_id + ":END"] !== undefined
+          )
+        ]
+      ];
+
+      el("homeGrid").innerHTML =
+        sections
+          .map(([label, done]) => `
+            <div class="status-card">
+              <div>${label}</div>
+              <div class="status ${done ? "ok" : "empty"}">
+                ${done ? "完了" : "未入力"}
+              </div>
+            </div>
+          `)
+          .join("");
+    }
+
+    async function loadHistory() {
+      const yearMonth = el("historyMonth").value;
+      if (!yearMonth) return;
+
+      try {
+        const rows = await jsonp({
+          action:"monthly",
+          yearMonth
+        });
+
+        if (!rows.length) {
+          el("historyTable").innerHTML =
+            '<div class="notice">この月の記録はありません。</div>';
+          return;
+        }
+
+        el("historyTable").innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>状態</th>
+                <th>不備</th>
+                <th>記録者</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td>${escapeHtml(row.date)}</td>
+                  <td>${row.status === "CONFIRMED" ? "確定" : "下書き"}</td>
+                  <td>${Number(row.problemCount || 0)}</td>
+                  <td>
+                    ${escapeHtml(row.operator || "")}
+                    ${row.operatorEmployeeNo
+                      ? `<div class="muted">社員番号 ${escapeHtml(row.operatorEmployeeNo)}</div>`
+                      : ""}
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+      } catch (error) {
+        showError(error);
+      }
+    }
+
+    el("historyMonth").addEventListener("change", loadHistory);
+
+    async function loadPlan() {
+      try {
+        const plan = await jsonp({ action:"plan" });
+
+        el("planContent").innerHTML = `
+          <p>
+            <strong>製造所：</strong>${escapeHtml(plan.facility)}<br>
+            <strong>食品衛生責任者：</strong>${escapeHtml(plan.manager)}<br>
+            <strong>使用水：</strong>${escapeHtml(plan.water)}<br>
+            <strong>金属探知機：</strong>${escapeHtml(plan.metalDetector)}<br>
+            <strong>記録保存：</strong>${escapeHtml(plan.storagePeriod)}
+          </p>
+
+          <h3>温度管理対象</h3>
+          <table>
+            <thead>
+              <tr><th>設備</th><th>基準</th></tr>
+            </thead>
+            <tbody>
+              ${(plan.temperatureTargets || []).map(target => `
+                <tr>
+                  <td>${escapeHtml(target.name)}</td>
+                  <td>${escapeHtml(target.standard)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          ${plan.sections.map(section => `
+            <h3>${escapeHtml(section.title)}</h3>
+            <p>${escapeHtml(section.body)}</p>
+          `).join("")}
+        `;
+
+      } catch (error) {
+        showError(error);
+      }
+    }
+
+    function formatDateJP(value) {
+      const date = new Date(value + "T00:00:00");
+      return (
+        date.getFullYear() +
+        "年" +
+        (date.getMonth() + 1) +
+        "月" +
+        date.getDate() +
+        "日"
+      );
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => window.setTimeout(resolve, ms));
+    }
+
+    function showMessage(text, type) {
+      el("message").innerHTML =
+        `<div class="${type}">${escapeHtml(text)}</div>`;
+    }
+
+    function showError(error) {
+      showMessage(error?.message || String(error), "error");
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    function clearMessage() {
+      el("message").innerHTML = "";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(
+        /[&<>"']/g,
+        character => ({
+          "&":"&amp;",
+          "<":"&lt;",
+          ">":"&gt;",
+          '"':"&quot;",
+          "'":"&#039;"
+        })[character]
+      );
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
