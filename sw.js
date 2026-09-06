@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hygiene-record-v0.7-work';
+const CACHE_NAME = 'hygiene-record-v0.8-work';
 const APP_SHELL = [
   './',
   './index.html',
