@@ -597,6 +597,77 @@
       line-height:1.65;
     }
 
+    .management-card {
+      margin-top:16px;
+    }
+
+    .management-head {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .management-overview {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .management-metric {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:11px 12px;
+      background:#fff;
+      min-width:0;
+    }
+
+    .management-metric-label {
+      color:var(--muted);
+      font-size:11px;
+      margin-bottom:4px;
+    }
+
+    .management-metric-value {
+      font-size:20px;
+      font-weight:800;
+      line-height:1.25;
+      overflow-wrap:anywhere;
+    }
+
+    .management-detail-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .management-detail-box {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 14px;
+      background:#fafbfc;
+      line-height:1.65;
+    }
+
+    .management-detail-title {
+      font-weight:800;
+      margin-bottom:4px;
+    }
+
+    .management-actions {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:8px;
+      margin-top:14px;
+    }
+
+    .management-actions button {
+      width:100%;
+    }
+
     .print-only { display:none; }
 
     @media(max-width:640px) {
@@ -650,6 +721,10 @@
 
       .equipment-active {
         min-height:auto;
+      }
+
+      .management-actions {
+        grid-template-columns:1fr;
       }
     }
 
@@ -756,7 +831,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.8_work</div>
+      <div class="sub">v0.9_work</div>
     </div>
   </header>
 
@@ -801,6 +876,31 @@
           <button class="primary no-print" type="button" onclick="showView('today')">
             今日の記録を入力
           </button>
+        </div>
+
+        <div class="card management-card">
+          <div class="management-head">
+            <div>
+              <h2 style="margin-bottom:3px">管理状況サマリー</h2>
+              <div class="muted" id="managementMonthLabel">今月の状況を読み込み中...</div>
+            </div>
+            <div id="managementAttentionStatus" class="status empty">確認中</div>
+          </div>
+
+          <div id="managementOverview" class="management-overview"></div>
+          <div id="managementDetails" class="management-detail-grid"></div>
+
+          <div class="management-actions no-print">
+            <button class="secondary" type="button" onclick="openMonthlyFromHome()">
+              月間記録・PDF
+            </button>
+            <button class="secondary" type="button" onclick="openPlanFromHome()">
+              衛生管理計画・PDF
+            </button>
+            <button class="secondary" type="button" onclick="showView('corrective')">
+              不備対応を確認
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1152,7 +1252,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
     const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
     const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
-    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.8-session";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.9-session";
 
     let BOOT = null;
     let RECORD = null;
@@ -1170,6 +1270,7 @@
     let PENDING_CORRECTIVE_RESOLUTION = null;
     let SETTINGS_DATA = null;
     let PENDING_SETTINGS_SAVE = null;
+    let MANAGEMENT_DASHBOARD = null;
 
     const state = {
       details: {},
@@ -1202,6 +1303,7 @@
         tab.classList.toggle("active", tab.dataset.view === view);
       });
 
+      if (view === "home") loadManagementDashboard();
       if (view === "history") loadHistory();
       if (view === "corrective") loadCorrectiveActions();
       if (view === "plan") loadPlan();
@@ -1399,6 +1501,8 @@
 
         const record = await jsonp({ action:"today" });
         loadRecordIntoState(record);
+
+        await loadManagementDashboard({ silent:true });
         clearMessage();
 
       } catch (error) {
@@ -2401,6 +2505,156 @@
           !SELECTED_OPERATOR?.employee_no;
         el("operatorLookupButton").disabled = false;
       }
+    }
+
+    function managementStatusClass(data) {
+      const monthly = data?.monthly || {};
+
+      if (
+        Number(monthly.unresolvedCount || 0) > 0 ||
+        Number(monthly.draftCount || 0) > 0
+      ) {
+        return {
+          label:"確認事項あり",
+          className:"ng"
+        };
+      }
+
+      return {
+        label:"記録進行中",
+        className:"ok"
+      };
+    }
+
+    function renderManagementDashboard(data) {
+      MANAGEMENT_DASHBOARD = data || null;
+
+      const monthly = data?.monthly || {};
+      const review = monthly.latestReview || null;
+      const plan = data?.plan || {};
+      const yearMonth = data?.yearMonth || BOOT?.today?.slice(0, 7) || "";
+
+      el("managementMonthLabel").textContent =
+        `${monthLabel(yearMonth)} / 第一製造部`;
+
+      const attention = managementStatusClass(data);
+      el("managementAttentionStatus").textContent = attention.label;
+      el("managementAttentionStatus").className =
+        `status ${attention.className}`;
+
+      const missingValue = review
+        ? `${Number(review.missingDays || 0)}日`
+        : "月次確認前";
+
+      const metrics = [
+        ["記録日数", `${Number(monthly.recordCount || 0)}日`, ""],
+        ["確定", `${Number(monthly.confirmedCount || 0)}日`,
+          Number(monthly.draftCount || 0) ? "" : "ok"],
+        ["記録漏れ", missingValue,
+          review && Number(review.missingDays || 0) > 0 ? "ng" : ""],
+        ["不備", `${Number(monthly.problemCount || 0)}件`,
+          Number(monthly.problemCount || 0) > 0 ? "ng" : ""],
+        ["未解決", `${Number(monthly.unresolvedCount || 0)}件`,
+          Number(monthly.unresolvedCount || 0) > 0 ? "ng" : "ok"]
+      ];
+
+      el("managementOverview").innerHTML = metrics.map(
+        ([label, value, cls]) => `
+          <div class="management-metric">
+            <div class="management-metric-label">${escapeHtml(label)}</div>
+            <div class="management-metric-value ${cls}">
+              ${escapeHtml(value)}
+            </div>
+          </div>
+        `
+      ).join("");
+
+      const reviewDetail = review
+        ? `
+          <div class="management-detail-title">最新月次確認</div>
+          第${Number(review.revisionNo || 1)}版
+          ／ 記録対象 ${Number(review.targetDays || 0)}日
+          ／ 記録漏れ ${Number(review.missingDays || 0)}日
+          ${review.reviewedBy
+            ? `<br>確認者：${escapeHtml(review.reviewedBy)}`
+            : ""}
+          ${review.reviewedAt
+            ? ` / ${escapeHtml(formatCorrectiveDateTime(review.reviewedAt))}`
+            : ""}
+        `
+        : `
+          <div class="management-detail-title">最新月次確認</div>
+          未実施
+          <div class="muted">月末の確認時に記録対象日数・記録漏れを確定します。</div>
+        `;
+
+      const planDetail = `
+        <div class="management-detail-title">現行衛生管理計画</div>
+        第${Number(plan.revisionNo || 0)}版
+        ${plan.effectiveDate
+          ? ` / 適用日 ${escapeHtml(plan.effectiveDate)}`
+          : ""}
+        ${plan.manager
+          ? `<br>食品衛生責任者：${escapeHtml(plan.manager)}`
+          : ""}
+        ${plan.storagePeriod
+          ? `<br>記録保存：${escapeHtml(plan.storagePeriod)}`
+          : ""}
+      `;
+
+      el("managementDetails").innerHTML = `
+        <div class="management-detail-box">${reviewDetail}</div>
+        <div class="management-detail-box">${planDetail}</div>
+      `;
+    }
+
+    async function loadManagementDashboard(options = {}) {
+      const yearMonth =
+        el("historyMonth")?.value ||
+        BOOT?.today?.slice(0, 7) ||
+        "";
+
+      if (!yearMonth) return;
+
+      try {
+        if (!options.silent) {
+          showMessage("管理状況を読み込んでいます...", "saving");
+        }
+
+        const data = await jsonp({
+          action:"managementDashboard",
+          yearMonth
+        });
+
+        renderManagementDashboard(data);
+
+        if (!options.silent) {
+          clearMessage();
+        }
+
+      } catch (error) {
+        if (options.silent) {
+          el("managementAttentionStatus").textContent = "読込エラー";
+          el("managementAttentionStatus").className = "status ng";
+          el("managementDetails").innerHTML =
+            `<div class="warning">管理状況を読み込めませんでした：${escapeHtml(error?.message || String(error))}</div>`;
+        } else {
+          showError(error);
+        }
+      }
+    }
+
+    function openMonthlyFromHome() {
+      if (BOOT?.today) {
+        el("historyMonth").value = BOOT.today.slice(0, 7);
+      }
+      showView("history");
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    function openPlanFromHome() {
+      showView("plan");
+      window.scrollTo({ top:0, behavior:"smooth" });
     }
 
     function refreshHome() {
