@@ -449,6 +449,92 @@
       margin-bottom:10px;
     }
 
+    .corrective-toolbar {
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .corrective-filter {
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:8px 10px;
+      background:#fff;
+      white-space:nowrap;
+    }
+
+    .corrective-list {
+      display:grid;
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .corrective-card {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:13px 14px;
+      background:#fff;
+    }
+
+    .corrective-card.open {
+      border-left:4px solid var(--ng);
+    }
+
+    .corrective-card.resolved {
+      border-left:4px solid var(--ok);
+    }
+
+    .corrective-head {
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:9px;
+    }
+
+    .corrective-title {
+      font-weight:800;
+      line-height:1.55;
+    }
+
+    .corrective-fields {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:8px 14px;
+    }
+
+    .corrective-field {
+      min-width:0;
+    }
+
+    .corrective-field-label {
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:2px;
+    }
+
+    .corrective-field-value {
+      font-size:13px;
+      line-height:1.6;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+    }
+
+    .corrective-followup {
+      border-top:1px solid var(--line);
+      margin-top:11px;
+      padding-top:11px;
+    }
+
+    .corrective-followup textarea {
+      margin:6px 0 8px;
+    }
+
     .print-only { display:none; }
 
     @media(max-width:640px) {
@@ -479,6 +565,20 @@
         width:100%;
         display:grid;
         grid-template-columns:1fr 1fr;
+      }
+
+      .corrective-toolbar {
+        display:grid;
+        grid-template-columns:1fr;
+        width:100%;
+      }
+
+      .corrective-toolbar input[type="month"] {
+        width:100%;
+      }
+
+      .corrective-filter {
+        justify-content:center;
       }
     }
 
@@ -585,7 +685,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.6_work</div>
+      <div class="sub">v0.7_work</div>
     </div>
   </header>
 
@@ -606,6 +706,7 @@
         <button class="tab active" data-view="home">ホーム</button>
         <button class="tab" data-view="today">今日の記録</button>
         <button class="tab" data-view="history">記録一覧</button>
+        <button class="tab" data-view="corrective">不備対応</button>
         <button class="tab" data-view="plan">衛生管理計画</button>
       </div>
 
@@ -753,6 +854,31 @@
         </div>
       </section>
 
+      <section id="view-corrective" class="hidden">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>不備・改善対応一覧</h2>
+              <div class="muted">
+                日次記録で登録された不備・温度基準外と、その対応状況を確認します。
+              </div>
+            </div>
+
+            <div class="corrective-toolbar no-print">
+              <input type="month" id="correctiveMonth" style="max-width:170px">
+
+              <label class="corrective-filter">
+                <input type="checkbox" id="correctiveUnresolvedOnly">
+                未解決のみ表示
+              </label>
+            </div>
+          </div>
+
+          <div id="correctiveSummary" class="grid" style="margin-top:14px"></div>
+          <div id="correctiveList" class="corrective-list"></div>
+        </div>
+      </section>
+
       <section id="view-plan" class="hidden">
         <div class="card">
           <div class="section-head no-print">
@@ -883,7 +1009,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
     const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
     const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
-    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.6-session";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.7-session";
 
     let BOOT = null;
     let RECORD = null;
@@ -897,6 +1023,8 @@
     let PLAN_DATA = null;
     let PENDING_PLAN_REVISION = null;
     let PLAN_VIEW_REVISION_NO = 0;
+    let CORRECTIVE_DATA = null;
+    let PENDING_CORRECTIVE_RESOLUTION = null;
 
     const state = {
       details: {},
@@ -930,6 +1058,7 @@
       });
 
       if (view === "history") loadHistory();
+      if (view === "corrective") loadCorrectiveActions();
       if (view === "plan") loadPlan();
     }
 
@@ -1109,6 +1238,7 @@
         el("todayLabel").textContent = formatDateJP(BOOT.today) + " の記録";
         el("recordDateLabel").textContent = formatDateJP(BOOT.today);
         el("historyMonth").value = BOOT.today.slice(0, 7);
+        el("correctiveMonth").value = BOOT.today.slice(0, 7);
 
         const deviceName = device.display_name || "共有アカウント";
         const scopeType = device.shared_scope_type || "";
@@ -1688,25 +1818,38 @@
 
       const isMonthly = OPERATOR_MODAL_MODE === "monthly";
       const isPlan = OPERATOR_MODAL_MODE === "plan";
+      const isCorrective = OPERATOR_MODAL_MODE === "corrective";
 
       el("operatorModalTitle").textContent =
-        isPlan
-          ? "計画改定者の確認"
-          : (isMonthly ? "月次確認者の確認" : "記録者の確認");
+        isCorrective
+          ? "解決確認者の確認"
+          : (
+              isPlan
+                ? "計画改定者の確認"
+                : (isMonthly ? "月次確認者の確認" : "記録者の確認")
+            );
 
       el("operatorModalDescription").textContent =
-        isPlan
-          ? "この衛生管理計画を改定する方の社員番号を入力してください。"
+        isCorrective
+          ? "この不備・改善対応を解決済みにする方の社員番号を入力してください。"
           : (
-              isMonthly
-                ? "この月次確認を確定する方の社員番号を入力してください。"
-                : "この記録を確定する方の社員番号を入力してください。"
+              isPlan
+                ? "この衛生管理計画を改定する方の社員番号を入力してください。"
+                : (
+                    isMonthly
+                      ? "この月次確認を確定する方の社員番号を入力してください。"
+                      : "この記録を確定する方の社員番号を入力してください。"
+                  )
             );
 
       el("operatorConfirmButton").textContent =
-        isPlan
-          ? "この社員で計画を改定"
-          : (isMonthly ? "この社員で月次確認" : "この社員で確定");
+        isCorrective
+          ? "この社員で解決済みにする"
+          : (
+              isPlan
+                ? "この社員で計画を改定"
+                : (isMonthly ? "この社員で月次確認" : "この社員で確定")
+            );
 
       el("operatorModal").classList.remove("hidden");
       el("operatorModal").setAttribute("aria-hidden", "false");
@@ -1774,12 +1917,16 @@
         el("operatorConfirmButton").disabled = false;
 
         setOperatorModalMessage(
-          OPERATOR_MODAL_MODE === "plan"
-            ? "氏名を確認し、ご本人であれば「この社員で計画を改定」を押してください。"
+          OPERATOR_MODAL_MODE === "corrective"
+            ? "氏名を確認し、ご本人であれば「この社員で解決済みにする」を押してください。"
             : (
-                OPERATOR_MODAL_MODE === "monthly"
-                  ? "氏名を確認し、ご本人であれば「この社員で月次確認」を押してください。"
-                  : "氏名を確認し、ご本人であれば「この社員で確定」を押してください。"
+                OPERATOR_MODAL_MODE === "plan"
+                  ? "氏名を確認し、ご本人であれば「この社員で計画を改定」を押してください。"
+                  : (
+                      OPERATOR_MODAL_MODE === "monthly"
+                        ? "氏名を確認し、ご本人であれば「この社員で月次確認」を押してください。"
+                        : "氏名を確認し、ご本人であれば「この社員で確定」を押してください。"
+                    )
               ),
           "notice"
         );
@@ -1813,6 +1960,11 @@
 
       if (OPERATOR_MODAL_MODE === "plan") {
         await executePlanRevisionAsOperator();
+        return;
+      }
+
+      if (OPERATOR_MODAL_MODE === "corrective") {
+        await executeCorrectiveResolutionAsOperator();
         return;
       }
 
@@ -2373,6 +2525,300 @@
     }
 
     el("historyMonth").addEventListener("change", loadHistory);
+
+    function formatCorrectiveDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("ja-JP");
+    }
+
+    function correctiveStatusLabel(status) {
+      return status === "OPEN" ? "未解決" : "解決済み";
+    }
+
+    function correctiveSourceLabel(sourceType) {
+      return sourceType === "TEMPERATURE" ? "温度基準外" : "衛生確認";
+    }
+
+    function renderCorrectiveActions(data) {
+      CORRECTIVE_DATA = data || null;
+
+      const summary = data?.summary || {
+        totalCount:0,
+        resolvedCount:0,
+        openCount:0,
+        temperatureCount:0
+      };
+      const rows = data?.rows || [];
+
+      const metrics = [
+        ["不備・対応", summary.totalCount, summary.totalCount ? "ng" : ""],
+        ["未解決", summary.openCount, summary.openCount ? "ng" : "ok"],
+        ["解決済み", summary.resolvedCount, "ok"],
+        ["温度基準外", summary.temperatureCount, summary.temperatureCount ? "ng" : ""]
+      ];
+
+      el("correctiveSummary").innerHTML = metrics.map(([label, value, cls]) => `
+        <div class="status-card">
+          <div class="muted">${escapeHtml(label)}</div>
+          <div class="metric-value ${cls}">${Number(value || 0)}</div>
+        </div>
+      `).join("");
+
+      if (!rows.length) {
+        el("correctiveList").innerHTML =
+          `<div class="notice">${
+            el("correctiveUnresolvedOnly").checked
+              ? "この月に未解決の不備・改善対応はありません。"
+              : "この月の不備・改善対応はありません。"
+          }</div>`;
+        return;
+      }
+
+      el("correctiveList").innerHTML = rows.map(row => {
+        const isOpen = row.resolutionStatus === "OPEN";
+        const resolutionMeta =
+          !isOpen && row.resolvedByName
+            ? `
+              <div class="corrective-field">
+                <div class="corrective-field-label">解決確認</div>
+                <div class="corrective-field-value">
+                  ${escapeHtml(row.resolvedByName)}
+                  ${row.resolvedByEmployeeNo
+                    ? ` / 社員番号 ${escapeHtml(row.resolvedByEmployeeNo)}`
+                    : ""}
+                  ${row.resolvedAt
+                    ? `<br>${escapeHtml(formatCorrectiveDateTime(row.resolvedAt))}`
+                    : ""}
+                </div>
+              </div>
+            `
+            : "";
+
+        return `
+          <div class="corrective-card ${isOpen ? "open" : "resolved"}">
+            <div class="corrective-head">
+              <div>
+                <div class="corrective-title">
+                  ${escapeHtml(row.date)}　
+                  ${escapeHtml(row.sourceLabel || row.problem || "")}
+                </div>
+                <div class="muted">
+                  ${escapeHtml(correctiveSourceLabel(row.sourceType))}
+                  ${row.recordedBy
+                    ? ` / 記録者 ${escapeHtml(row.recordedBy)}`
+                    : ""}
+                </div>
+              </div>
+
+              <span class="status ${isOpen ? "ng" : "ok"}">
+                ${escapeHtml(correctiveStatusLabel(row.resolutionStatus))}
+              </span>
+            </div>
+
+            <div class="corrective-fields">
+              <div class="corrective-field">
+                <div class="corrective-field-label">不備内容</div>
+                <div class="corrective-field-value">${escapeHtml(row.problem || "―")}</div>
+              </div>
+
+              <div class="corrective-field">
+                <div class="corrective-field-label">原因</div>
+                <div class="corrective-field-value">${escapeHtml(row.cause || "―")}</div>
+              </div>
+
+              <div class="corrective-field">
+                <div class="corrective-field-label">対応内容</div>
+                <div class="corrective-field-value">${escapeHtml(row.actionTaken || "―")}</div>
+              </div>
+
+              ${row.recheckValue !== ""
+                ? `
+                  <div class="corrective-field">
+                    <div class="corrective-field-label">再確認温度</div>
+                    <div class="corrective-field-value">${escapeHtml(row.recheckValue)}℃</div>
+                  </div>
+                `
+                : ""}
+
+              ${row.followupNote
+                ? `
+                  <div class="corrective-field">
+                    <div class="corrective-field-label">再確認・完了内容</div>
+                    <div class="corrective-field-value">${escapeHtml(row.followupNote)}</div>
+                  </div>
+                `
+                : ""}
+
+              ${resolutionMeta}
+            </div>
+
+            ${isOpen
+              ? `
+                <div class="corrective-followup no-print">
+                  <label class="field-label" for="corrective-followup-${escapeHtml(row.actionId)}">
+                    再確認・完了内容 *
+                  </label>
+                  <textarea
+                    id="corrective-followup-${escapeHtml(row.actionId)}"
+                    placeholder="例：翌朝再確認し正常温度へ復帰。保管品に異常なし。"></textarea>
+                  <button class="primary" type="button"
+                    onclick="startCorrectiveResolution('${escapeHtml(row.actionId)}')">
+                    解決処理
+                  </button>
+                </div>
+              `
+              : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function loadCorrectiveActions() {
+      const yearMonth = el("correctiveMonth").value;
+      if (!yearMonth) return;
+
+      try {
+        showMessage("不備・改善対応を読み込んでいます...", "saving");
+
+        const data = await jsonp({
+          action:"correctiveActions",
+          yearMonth,
+          unresolvedOnly: el("correctiveUnresolvedOnly").checked ? "true" : "false"
+        });
+
+        renderCorrectiveActions(data);
+        clearMessage();
+
+      } catch (error) {
+        showError(error);
+      }
+    }
+
+    function startCorrectiveResolution(actionId) {
+      const textarea = el(`corrective-followup-${actionId}`);
+      const followupNote = String(textarea?.value || "").trim();
+
+      if (!followupNote) {
+        showError(new Error("再確認・完了内容を入力してください。"));
+        return;
+      }
+
+      PENDING_CORRECTIVE_RESOLUTION = {
+        actionId,
+        followupNote,
+        yearMonth: el("correctiveMonth").value
+      };
+
+      openOperatorModal("corrective");
+    }
+
+    async function waitForCorrectiveResolution(
+      actionId,
+      employeeNo,
+      yearMonth,
+      attempts = 22
+    ) {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        await sleep(attempt === 0 ? 850 : 550);
+
+        try {
+          const data = await jsonp({
+            action:"correctiveActions",
+            yearMonth,
+            unresolvedOnly:"false"
+          });
+
+          const target = (data?.rows || []).find(
+            row => String(row.actionId || "") === String(actionId || "")
+          );
+
+          if (
+            target &&
+            target.resolutionStatus === "RESOLVED" &&
+            String(target.resolvedByEmployeeNo || "") === String(employeeNo || "")
+          ) {
+            return data;
+          }
+
+        } catch (error) {
+          // 保存完了待ち。
+        }
+      }
+
+      throw new Error(
+        "解決処理の保存結果を確認できませんでした。画面を再読み込みしてご確認ください。"
+      );
+    }
+
+    async function executeCorrectiveResolutionAsOperator() {
+      if (!PENDING_CORRECTIVE_RESOLUTION) {
+        setOperatorModalMessage(
+          "対象の不備・改善対応を確認できません。",
+          "error"
+        );
+        return;
+      }
+
+      try {
+        el("operatorConfirmButton").disabled = true;
+        el("operatorConfirmButton").dataset.busy = "true";
+        el("operatorLookupButton").disabled = true;
+
+        setOperatorModalMessage(
+          "解決処理を保存しています...",
+          "saving"
+        );
+
+        const expectedEmployeeNo = SELECTED_OPERATOR.employee_no;
+        const expectedDisplayName = SELECTED_OPERATOR.display_name || "確認者";
+        const pending = { ...PENDING_CORRECTIVE_RESOLUTION };
+
+        submitForm("resolveCorrectiveAction", {
+          payload:{
+            actionId: pending.actionId,
+            followupNote: pending.followupNote
+          },
+          operatorEmployeeNo: expectedEmployeeNo
+        });
+
+        const data = await waitForCorrectiveResolution(
+          pending.actionId,
+          expectedEmployeeNo,
+          pending.yearMonth
+        );
+
+        PENDING_CORRECTIVE_RESOLUTION = null;
+        closeOperatorModal();
+
+        if (el("correctiveUnresolvedOnly").checked) {
+          await loadCorrectiveActions();
+        } else {
+          renderCorrectiveActions(data);
+        }
+
+        showMessage(
+          `${expectedDisplayName}として不備・改善対応を解決済みにしました。`,
+          "notice"
+        );
+
+      } catch (error) {
+        setOperatorModalMessage(
+          error?.message || String(error),
+          "error"
+        );
+
+      } finally {
+        el("operatorConfirmButton").dataset.busy = "false";
+        el("operatorConfirmButton").disabled =
+          !SELECTED_OPERATOR?.employee_no;
+        el("operatorLookupButton").disabled = false;
+      }
+    }
+
+    el("correctiveMonth").addEventListener("change", loadCorrectiveActions);
+    el("correctiveUnresolvedOnly").addEventListener("change", loadCorrectiveActions);
 
     function formatPlanDateTime(value) {
       if (!value) return "";
