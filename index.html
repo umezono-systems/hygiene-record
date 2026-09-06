@@ -277,6 +277,72 @@
       margin:12px 0;
     }
 
+    .history-section-head {
+      align-items:flex-start;
+    }
+
+    .history-toolbar {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    #historySummary {
+      margin-top:18px;
+    }
+
+    .auto-days-box {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 14px;
+      background:#f8fafc;
+    }
+
+    .auto-days-value {
+      font-size:24px;
+      font-weight:800;
+      margin:2px 0 4px;
+    }
+
+    .closed-date-controls {
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .closed-date-controls input {
+      min-width:0;
+    }
+
+    .closed-date-list {
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-top:8px;
+    }
+
+    .closed-date-chip {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:6px 9px;
+      font-size:12px;
+    }
+
+    .closed-date-chip button {
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      padding:0;
+      cursor:pointer;
+      font-size:15px;
+      line-height:1;
+    }
+
     .field-label {
       display:block;
       font-size:12px;
@@ -289,6 +355,26 @@
     @media(max-width:640px) {
       .temp-row { grid-template-columns:1fr 100px; }
       .temp-result { grid-column:2; }
+
+      .history-section-head {
+        display:block;
+      }
+
+      .history-toolbar {
+        display:grid;
+        grid-template-columns:minmax(0,1fr) auto;
+        width:100%;
+        margin-top:12px;
+      }
+
+      .history-toolbar input[type="month"] {
+        max-width:none!important;
+      }
+
+      .closed-date-controls {
+        display:grid;
+        grid-template-columns:minmax(0,1fr) auto;
+      }
     }
 
     @media print {
@@ -326,7 +412,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.5_work</div>
+      <div class="sub">v0.5-1_work</div>
     </div>
   </header>
 
@@ -422,9 +508,9 @@
         <div id="monthlyPrintHeader" class="print-only"></div>
 
         <div class="card">
-          <div class="section-head">
+          <div class="section-head history-section-head">
             <h2>月間記録</h2>
-            <div class="row no-print">
+            <div class="history-toolbar no-print">
               <input type="month" id="historyMonth" style="max-width:170px">
               <button class="secondary" type="button" onclick="printMonthly()">
                 印刷 / PDF
@@ -451,9 +537,23 @@
           <div class="screen-only">
             <div class="review-form-grid">
               <div>
-                <label class="field-label" for="monthlyTargetDays">記録対象日数</label>
-                <input id="monthlyTargetDays" type="number" min="0" inputmode="numeric">
-                <div class="muted">実際に衛生記録が必要だった稼働日数を入力</div>
+                <label class="field-label">記録対象日数（自動）</label>
+                <div class="auto-days-box">
+                  <div id="monthlyTargetDaysDisplay" class="auto-days-value">0日</div>
+                  <div class="muted">月の日数 − 休業日で自動計算します。</div>
+                </div>
+
+                <div style="margin-top:10px">
+                  <label class="field-label" for="monthlyClosedDateInput">休業日（必要な月だけ）</label>
+                  <div class="closed-date-controls">
+                    <input id="monthlyClosedDateInput" type="date">
+                    <button class="secondary" type="button" onclick="addMonthlyClosedDate()">
+                      休業日を追加
+                    </button>
+                  </div>
+                  <div id="monthlyClosedDateList" class="closed-date-list"></div>
+                  <div class="muted">通常月は入力不要です。正月休み等だけ指定します。</div>
+                </div>
               </div>
 
               <div>
@@ -539,7 +639,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
     const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
     const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
-    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.5-session";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.5-1-session";
 
     let BOOT = null;
     let RECORD = null;
@@ -549,6 +649,7 @@
     let OPERATOR_MODAL_MODE = "daily";
     let MONTHLY_OVERVIEW = null;
     let PENDING_MONTHLY_REVIEW = null;
+    let MONTHLY_CLOSED_DATES = [];
 
     const state = {
       details: {},
@@ -1496,10 +1597,80 @@
       }
     }
 
+    function getMonthlyTargetDays() {
+      const daysInMonth = Number(MONTHLY_OVERVIEW?.daysInMonth || 0);
+      return Math.max(0, daysInMonth - MONTHLY_CLOSED_DATES.length);
+    }
+
+    function renderMonthlyClosedDates() {
+      const yearMonth = el("historyMonth").value;
+      const input = el("monthlyClosedDateInput");
+      const list = el("monthlyClosedDateList");
+      const target = el("monthlyTargetDaysDisplay");
+
+      if (input && yearMonth) {
+        const daysInMonth = Number(MONTHLY_OVERVIEW?.daysInMonth || 31);
+        input.min = `${yearMonth}-01`;
+        input.max = `${yearMonth}-${String(daysInMonth).padStart(2, "0")}`;
+        if (input.value && !input.value.startsWith(yearMonth + "-")) {
+          input.value = "";
+        }
+      }
+
+      if (target) {
+        target.textContent = `${getMonthlyTargetDays()}日`;
+      }
+
+      if (!list) return;
+
+      if (!MONTHLY_CLOSED_DATES.length) {
+        list.innerHTML = '<span class="muted">休業日の指定なし</span>';
+        return;
+      }
+
+      list.innerHTML = MONTHLY_CLOSED_DATES.map(date => `
+        <span class="closed-date-chip">
+          ${escapeHtml(date)}
+          <button type="button" aria-label="${escapeHtml(date)}を削除"
+            onclick="removeMonthlyClosedDate('${escapeHtml(date)}')">×</button>
+        </span>
+      `).join("");
+    }
+
+    function addMonthlyClosedDate() {
+      const input = el("monthlyClosedDateInput");
+      const date = String(input?.value || "").trim();
+      const yearMonth = el("historyMonth").value;
+
+      if (!date) {
+        showError(new Error("休業日を選択してください。"));
+        return;
+      }
+
+      if (!yearMonth || !date.startsWith(yearMonth + "-")) {
+        showError(new Error("対象月内の休業日を選択してください。"));
+        return;
+      }
+
+      if (!MONTHLY_CLOSED_DATES.includes(date)) {
+        MONTHLY_CLOSED_DATES.push(date);
+        MONTHLY_CLOSED_DATES.sort();
+      }
+
+      if (input) input.value = "";
+      renderMonthlyClosedDates();
+    }
+
+    function removeMonthlyClosedDate(date) {
+      MONTHLY_CLOSED_DATES = MONTHLY_CLOSED_DATES.filter(item => item !== date);
+      renderMonthlyClosedDates();
+    }
+
     function buildMonthlyReviewPayload() {
       return {
         yearMonth: el("historyMonth").value,
-        targetDays: Number(el("monthlyTargetDays").value),
+        targetDays: getMonthlyTargetDays(),
+        closedDates: [...MONTHLY_CLOSED_DATES],
         planChangeRequired: el("monthlyPlanChange").value,
         comment: String(el("monthlyReviewComment").value || "").trim()
       };
@@ -1511,15 +1682,18 @@
       }
 
       const summary = MONTHLY_OVERVIEW.summary || {};
-      const daysInMonth = Number(MONTHLY_OVERVIEW.daysInMonth || 31);
-      const targetDays = Number(el("monthlyTargetDays").value);
+      const targetDays = getMonthlyTargetDays();
+      const recordDates = new Set(
+        (MONTHLY_OVERVIEW.records || []).map(row => String(row.date || ""))
+      );
+      const conflicts = MONTHLY_CLOSED_DATES.filter(date => recordDates.has(date));
 
-      if (!Number.isInteger(targetDays) || targetDays < 0 || targetDays > daysInMonth) {
-        return `記録対象日数は0日以上${daysInMonth}日以下で入力してください。`;
+      if (conflicts.length) {
+        return `休業日に日次記録があります。休業日の指定を確認してください：${conflicts.join("、")}`;
       }
 
       if (targetDays < Number(summary.recordCount || 0)) {
-        return "記録対象日数は、既に記録されている日数以上で入力してください。";
+        return "記録対象日数と日次記録数の整合性を確認してください。";
       }
 
       if (Number(summary.draftCount || 0) > 0) {
@@ -1823,13 +1997,11 @@
         `;
       }
 
-      const targetDaysDefault =
-        review?.targetDays !== undefined && review?.targetDays !== null
-          ? Number(review.targetDays)
-          : Number(summary.recordCount || 0);
+      MONTHLY_CLOSED_DATES = Array.isArray(review?.closedDates)
+        ? [...review.closedDates]
+        : [];
+      renderMonthlyClosedDates();
 
-      el("monthlyTargetDays").max = String(overview?.daysInMonth || 31);
-      el("monthlyTargetDays").value = String(targetDaysDefault);
       el("monthlyPlanChange").value =
         review ? String(Boolean(review.planChangeRequired)) : "";
       el("monthlyReviewComment").value = review?.comment || "";
@@ -1845,6 +2017,7 @@
             <br>
             確認日時：${escapeHtml(review.reviewedAt || "")}<br>
             記録対象 ${Number(review.targetDays || 0)}日
+            ／ 休業日 ${Array.isArray(review.closedDates) ? review.closedDates.length : 0}日
             ／ 記録済み ${Number(review.recordCount || 0)}日
             ／ 記録漏れ ${Number(review.missingDays || 0)}日
             ／ 未解決 ${Number(review.unresolvedCount || 0)}件
@@ -1877,6 +2050,14 @@
               <tr>
                 <th>記録対象</th><td>${Number(review.targetDays || 0)}日</td>
                 <th>記録漏れ</th><td>${Number(review.missingDays || 0)}日</td>
+              </tr>
+              <tr>
+                <th>休業日</th>
+                <td colspan="3">
+                  ${Array.isArray(review.closedDates) && review.closedDates.length
+                    ? escapeHtml(review.closedDates.join("、"))
+                    : "なし"}
+                </td>
               </tr>
               <tr>
                 <th>不備・対応</th><td>${Number(review.problemCount || 0)}件</td>
