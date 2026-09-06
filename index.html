@@ -350,6 +350,105 @@
       margin-bottom:6px;
     }
 
+    .plan-meta {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:8px;
+      margin-bottom:14px;
+    }
+
+    .plan-meta-item {
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px 12px;
+      background:#fafbfc;
+    }
+
+    .plan-meta-label {
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:3px;
+    }
+
+    .plan-meta-value {
+      font-weight:700;
+      line-height:1.5;
+    }
+
+    .plan-revision-banner {
+      border:1px solid #e4c47b;
+      background:#fff8e8;
+      color:#7a5200;
+      border-radius:10px;
+      padding:10px 12px;
+      margin-bottom:12px;
+      line-height:1.6;
+    }
+
+    .plan-edit-panel {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      margin-top:16px;
+      background:#fafbfc;
+    }
+
+    .plan-edit-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .plan-edit-section {
+      border-top:1px solid var(--line);
+      padding-top:12px;
+      margin-top:12px;
+    }
+
+    .plan-section-list {
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    .plan-section-box {
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:11px 12px;
+      break-inside:avoid;
+    }
+
+    .plan-section-title {
+      font-weight:800;
+      margin-bottom:5px;
+      font-size:13px;
+    }
+
+    .plan-section-body {
+      font-size:13px;
+      line-height:1.65;
+    }
+
+    .plan-history-actions button {
+      padding:6px 9px;
+      font-size:12px;
+    }
+
+    .plan-print-title {
+      text-align:center;
+      font-size:20px;
+      font-weight:800;
+      margin:0 0 3px;
+    }
+
+    .plan-print-subtitle {
+      text-align:center;
+      font-size:11px;
+      color:#555;
+      margin-bottom:10px;
+    }
+
     .print-only { display:none; }
 
     @media(max-width:640px) {
@@ -375,9 +474,20 @@
         display:grid;
         grid-template-columns:minmax(0,1fr) auto;
       }
+
+      .plan-actions {
+        width:100%;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+      }
     }
 
     @media print {
+      @page {
+        size:A4 portrait;
+        margin:10mm;
+      }
+
       header,.tabs,#message,.no-print,.modal-backdrop,.screen-only {
         display:none!important;
       }
@@ -388,10 +498,10 @@
         border:0;
         padding:0;
         margin:0 0 18px;
-        break-inside:avoid;
+        break-inside:auto;
       }
-      table { font-size:11px; }
-      th,td { padding:6px 4px; }
+      table { font-size:10px; }
+      th,td { padding:5px 4px; }
       .grid {
         grid-template-columns:repeat(5,1fr);
         gap:6px;
@@ -401,6 +511,69 @@
         border:1px solid #bbb;
       }
       .metric-value { font-size:18px; }
+
+      #view-plan .card {
+        margin:0;
+      }
+
+      #planContent {
+        font-size:9.4pt;
+      }
+
+      #planContent .plan-meta {
+        grid-template-columns:repeat(5,1fr);
+        gap:4px;
+        margin-bottom:7px;
+      }
+
+      #planContent .plan-meta-item {
+        border:1px solid #888;
+        border-radius:0;
+        padding:4px 5px;
+        background:#fff;
+      }
+
+      #planContent .plan-meta-label {
+        font-size:7.5pt;
+      }
+
+      #planContent .plan-meta-value {
+        font-size:8.5pt;
+      }
+
+      #planContent h3 {
+        font-size:9.5pt;
+        margin:7px 0 4px;
+      }
+
+      #planContent table {
+        margin-bottom:6px;
+      }
+
+      #planContent .plan-section-list {
+        grid-template-columns:1fr 1fr;
+        gap:4px 7px;
+      }
+
+      #planContent .plan-section-box {
+        border:1px solid #999;
+        border-radius:0;
+        padding:4px 5px;
+      }
+
+      #planContent .plan-section-title {
+        font-size:8.2pt;
+        margin-bottom:2px;
+      }
+
+      #planContent .plan-section-body {
+        font-size:7.7pt;
+        line-height:1.42;
+      }
+
+      #planRevisionHistoryCard {
+        display:none!important;
+      }
     }
   </style>
 </head>
@@ -412,7 +585,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.5-1_work</div>
+      <div class="sub">v0.6_work</div>
     </div>
   </header>
 
@@ -582,16 +755,87 @@
 
       <section id="view-plan" class="hidden">
         <div class="card">
-          <div class="section-head">
+          <div class="section-head no-print">
             <div>
               <h2>第一製造部 衛生管理計画</h2>
-              <div class="muted">食品衛生責任者：西川 周一郎</div>
+              <div class="muted" id="planHeaderMeta">読み込み中...</div>
             </div>
-            <button class="secondary no-print" type="button" onclick="window.print()">
-              印刷 / PDF
+            <div class="row plan-actions">
+              <button class="secondary" type="button" onclick="printPlan()">
+                印刷 / PDF
+              </button>
+              <button class="primary" style="width:auto" type="button" onclick="openPlanEdit()">
+                計画を改定
+              </button>
+            </div>
+          </div>
+
+          <div id="planRevisionBanner" class="plan-revision-banner hidden no-print"></div>
+          <div id="planContent"></div>
+
+          <div id="planEditPanel" class="plan-edit-panel hidden no-print">
+            <div class="section-head">
+              <div>
+                <h3 style="margin:0">衛生管理計画を改定</h3>
+                <div class="muted">現行版を基に新しい版を作成します。過去版は上書きしません。</div>
+              </div>
+              <button class="secondary" type="button" onclick="closePlanEdit()">閉じる</button>
+            </div>
+
+            <div class="plan-edit-grid">
+              <div>
+                <label class="field-label" for="planEditManager">食品衛生責任者</label>
+                <input id="planEditManager">
+              </div>
+              <div>
+                <label class="field-label" for="planEditWater">使用水</label>
+                <input id="planEditWater">
+              </div>
+              <div>
+                <label class="field-label" for="planEditMetalDetector">金属探知機</label>
+                <input id="planEditMetalDetector">
+              </div>
+              <div>
+                <label class="field-label" for="planEditStoragePeriod">記録保存期間</label>
+                <input id="planEditStoragePeriod">
+              </div>
+            </div>
+
+            <div class="notice">
+              冷蔵・冷凍設備の名称と温度基準は現在の計画値を引き継ぎます。
+              設備基準そのものの変更は、後続の設定機能で管理します。
+            </div>
+
+            <div id="planEditSections" class="plan-edit-section"></div>
+
+            <div class="plan-edit-grid" style="margin-top:14px">
+              <div>
+                <label class="field-label" for="planEffectiveDate">適用日</label>
+                <input id="planEffectiveDate" type="date">
+                <div class="muted">本日以前の日付を指定</div>
+              </div>
+              <div>
+                <label class="field-label" for="planChangeReason">改定理由</label>
+                <textarea id="planChangeReason"
+                  placeholder="例：食品衛生責任者変更に伴い計画を更新"></textarea>
+              </div>
+            </div>
+
+            <button class="primary" type="button" onclick="confirmPlanRevision()">
+              改定内容を確認して保存
             </button>
           </div>
-          <div id="planContent"></div>
+        </div>
+
+        <div class="card no-print" id="planRevisionHistoryCard">
+          <div class="section-head">
+            <h2>計画改定履歴</h2>
+            <button id="planReturnCurrentButton" class="secondary hidden" type="button"
+              onclick="loadPlan()">
+              現行版に戻る
+            </button>
+          </div>
+          <div id="planRevisionHistory"></div>
         </div>
       </section>
     </div>
@@ -639,7 +883,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
     const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
     const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
-    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.5-1-session";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.6-session";
 
     let BOOT = null;
     let RECORD = null;
@@ -650,6 +894,9 @@
     let MONTHLY_OVERVIEW = null;
     let PENDING_MONTHLY_REVIEW = null;
     let MONTHLY_CLOSED_DATES = [];
+    let PLAN_DATA = null;
+    let PENDING_PLAN_REVISION = null;
+    let PLAN_VIEW_REVISION_NO = 0;
 
     const state = {
       details: {},
@@ -1440,14 +1687,26 @@
       setOperatorModalMessage("");
 
       const isMonthly = OPERATOR_MODAL_MODE === "monthly";
+      const isPlan = OPERATOR_MODAL_MODE === "plan";
+
       el("operatorModalTitle").textContent =
-        isMonthly ? "月次確認者の確認" : "記録者の確認";
+        isPlan
+          ? "計画改定者の確認"
+          : (isMonthly ? "月次確認者の確認" : "記録者の確認");
+
       el("operatorModalDescription").textContent =
-        isMonthly
-          ? "この月次確認を確定する方の社員番号を入力してください。"
-          : "この記録を確定する方の社員番号を入力してください。";
+        isPlan
+          ? "この衛生管理計画を改定する方の社員番号を入力してください。"
+          : (
+              isMonthly
+                ? "この月次確認を確定する方の社員番号を入力してください。"
+                : "この記録を確定する方の社員番号を入力してください。"
+            );
+
       el("operatorConfirmButton").textContent =
-        isMonthly ? "この社員で月次確認" : "この社員で確定";
+        isPlan
+          ? "この社員で計画を改定"
+          : (isMonthly ? "この社員で月次確認" : "この社員で確定");
 
       el("operatorModal").classList.remove("hidden");
       el("operatorModal").setAttribute("aria-hidden", "false");
@@ -1515,9 +1774,13 @@
         el("operatorConfirmButton").disabled = false;
 
         setOperatorModalMessage(
-          OPERATOR_MODAL_MODE === "monthly"
-            ? "氏名を確認し、ご本人であれば「この社員で月次確認」を押してください。"
-            : "氏名を確認し、ご本人であれば「この社員で確定」を押してください。",
+          OPERATOR_MODAL_MODE === "plan"
+            ? "氏名を確認し、ご本人であれば「この社員で計画を改定」を押してください。"
+            : (
+                OPERATOR_MODAL_MODE === "monthly"
+                  ? "氏名を確認し、ご本人であれば「この社員で月次確認」を押してください。"
+                  : "氏名を確認し、ご本人であれば「この社員で確定」を押してください。"
+              ),
           "notice"
         );
 
@@ -1545,6 +1808,11 @@
 
       if (OPERATOR_MODAL_MODE === "monthly") {
         await executeMonthlyReviewAsOperator();
+        return;
+      }
+
+      if (OPERATOR_MODAL_MODE === "plan") {
+        await executePlanRevisionAsOperator();
         return;
       }
 
@@ -2106,42 +2374,367 @@
 
     el("historyMonth").addEventListener("change", loadHistory);
 
-    async function loadPlan() {
-      try {
-        const plan = await jsonp({ action:"plan" });
+    function formatPlanDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString("ja-JP");
+    }
 
-        el("planContent").innerHTML = `
-          <p>
-            <strong>製造所：</strong>${escapeHtml(plan.facility)}<br>
-            <strong>食品衛生責任者：</strong>${escapeHtml(plan.manager)}<br>
-            <strong>使用水：</strong>${escapeHtml(plan.water)}<br>
-            <strong>金属探知機：</strong>${escapeHtml(plan.metalDetector)}<br>
-            <strong>記録保存：</strong>${escapeHtml(plan.storagePeriod)}
-          </p>
+    function renderPlan(planData) {
+      PLAN_DATA = planData || null;
+      const plan = planData || {};
+      const revision = plan.revision || null;
+      const currentRevisionNo = Number(plan.currentRevisionNo || 0);
+      const viewingRevisionNo = Number(plan.viewingRevisionNo || 0);
 
-          <h3>温度管理対象</h3>
-          <table>
-            <thead>
-              <tr><th>設備</th><th>基準</th></tr>
-            </thead>
-            <tbody>
-              ${(plan.temperatureTargets || []).map(target => `
-                <tr>
-                  <td>${escapeHtml(target.name)}</td>
-                  <td>${escapeHtml(target.standard)}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
+      PLAN_VIEW_REVISION_NO = viewingRevisionNo;
 
-          ${plan.sections.map(section => `
-            <h3>${escapeHtml(section.title)}</h3>
-            <p>${escapeHtml(section.body)}</p>
+      el("planHeaderMeta").textContent =
+        revision
+          ? `第${revision.revisionNo}版 / 適用日 ${revision.effectiveDate || "-"}`
+          : "計画初期登録前";
+
+      const isPastVersion =
+        currentRevisionNo > 0 &&
+        viewingRevisionNo > 0 &&
+        viewingRevisionNo !== currentRevisionNo;
+
+      const banner = el("planRevisionBanner");
+
+      if (isPastVersion) {
+        banner.textContent =
+          `過去版（第${viewingRevisionNo}版）を表示しています。印刷/PDFもこの版が対象です。`;
+        banner.classList.remove("hidden");
+        el("planReturnCurrentButton").classList.remove("hidden");
+      } else {
+        banner.classList.add("hidden");
+        banner.textContent = "";
+        el("planReturnCurrentButton").classList.add("hidden");
+      }
+
+      const revisionText = revision
+        ? `第${Number(revision.revisionNo || 1)}版`
+        : "初期版";
+      const effectiveText = revision?.effectiveDate || "-";
+      const creatorText = revision?.createdByName || "初期登録";
+      const reasonText = revision?.changeReason || "初期計画";
+
+      el("planContent").innerHTML = `
+        <div class="plan-print-title">第一製造部 衛生管理計画</div>
+        <div class="plan-print-subtitle">
+          ${escapeHtml(revisionText)} ／ 適用日 ${escapeHtml(effectiveText)}
+        </div>
+
+        <div class="plan-meta">
+          <div class="plan-meta-item">
+            <div class="plan-meta-label">製造所</div>
+            <div class="plan-meta-value">${escapeHtml(plan.facility)}</div>
+          </div>
+          <div class="plan-meta-item">
+            <div class="plan-meta-label">食品衛生責任者</div>
+            <div class="plan-meta-value">${escapeHtml(plan.manager)}</div>
+          </div>
+          <div class="plan-meta-item">
+            <div class="plan-meta-label">使用水</div>
+            <div class="plan-meta-value">${escapeHtml(plan.water)}</div>
+          </div>
+          <div class="plan-meta-item">
+            <div class="plan-meta-label">金属探知機</div>
+            <div class="plan-meta-value">${escapeHtml(plan.metalDetector)}</div>
+          </div>
+          <div class="plan-meta-item">
+            <div class="plan-meta-label">記録保存</div>
+            <div class="plan-meta-value">${escapeHtml(plan.storagePeriod)}</div>
+          </div>
+        </div>
+
+        <h3>冷蔵・冷凍設備の温度管理基準</h3>
+        <table>
+          <thead>
+            <tr><th>設備</th><th>基準</th></tr>
+          </thead>
+          <tbody>
+            ${(plan.temperatureTargets || []).map(target => `
+              <tr>
+                <td>${escapeHtml(target.name)}</td>
+                <td>${escapeHtml(target.standard)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+
+        <h3>衛生管理の実施内容</h3>
+        <div class="plan-section-list">
+          ${(plan.sections || []).map(section => `
+            <div class="plan-section-box">
+              <div class="plan-section-title">${escapeHtml(section.title)}</div>
+              <div class="plan-section-body">${escapeHtml(section.body)}</div>
+            </div>
           `).join("")}
-        `;
+        </div>
+
+        <div class="record-meta no-print">
+          作成・改定：${escapeHtml(creatorText)}
+          ${revision?.createdAt ? ` / ${escapeHtml(formatPlanDateTime(revision.createdAt))}` : ""}
+          <br>
+          改定理由：${escapeHtml(reasonText)}
+        </div>
+      `;
+
+      renderPlanRevisionHistory(plan.history || [], currentRevisionNo);
+    }
+
+    function renderPlanRevisionHistory(history, currentRevisionNo) {
+      const box = el("planRevisionHistory");
+
+      if (!history?.length) {
+        box.innerHTML =
+          '<div class="notice">計画改定履歴はまだありません。configureHygieneV06 を実行してください。</div>';
+        return;
+      }
+
+      box.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>版</th>
+              <th>適用日</th>
+              <th>改定者</th>
+              <th>改定理由</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${history.map(item => `
+              <tr>
+                <td>
+                  第${Number(item.revisionNo || 0)}版
+                  ${Number(item.revisionNo || 0) === Number(currentRevisionNo || 0)
+                    ? '<span class="ok">（現行）</span>'
+                    : ''}
+                </td>
+                <td>${escapeHtml(item.effectiveDate || "-")}</td>
+                <td>${escapeHtml(item.createdByName || "-")}</td>
+                <td>${escapeHtml(item.changeReason || "-")}</td>
+                <td class="plan-history-actions">
+                  <button class="secondary" type="button"
+                    onclick="loadPlanRevision(${Number(item.revisionNo || 0)})">
+                    表示
+                  </button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function loadPlan(revisionNo = "") {
+      try {
+        const params = { action:"plan" };
+
+        if (revisionNo) {
+          params.revisionNo = revisionNo;
+        }
+
+        const plan = await jsonp(params);
+        renderPlan(plan);
+
+        if (!revisionNo) {
+          closePlanEdit();
+        }
 
       } catch (error) {
         showError(error);
+      }
+    }
+
+    async function loadPlanRevision(revisionNo) {
+      await loadPlan(revisionNo);
+      window.scrollTo({ top:0, behavior:"smooth" });
+    }
+
+    function printPlan() {
+      if (!PLAN_DATA) {
+        showError(new Error("衛生管理計画を読み込んでから印刷してください。"));
+        return;
+      }
+      window.print();
+    }
+
+    function openPlanEdit() {
+      if (!PLAN_DATA) {
+        showError(new Error("衛生管理計画を読み込んでください。"));
+        return;
+      }
+
+      if (
+        Number(PLAN_VIEW_REVISION_NO || 0) !==
+        Number(PLAN_DATA.currentRevisionNo || 0)
+      ) {
+        showError(new Error("計画の改定は現行版から行ってください。"));
+        return;
+      }
+
+      el("planEditManager").value = PLAN_DATA.manager || "";
+      el("planEditWater").value = PLAN_DATA.water || "";
+      el("planEditMetalDetector").value = PLAN_DATA.metalDetector || "";
+      el("planEditStoragePeriod").value = PLAN_DATA.storagePeriod || "";
+      el("planEffectiveDate").value = BOOT?.today || "";
+      el("planEffectiveDate").max = BOOT?.today || "";
+      el("planChangeReason").value = "";
+
+      el("planEditSections").innerHTML = `
+        <h3 style="margin-top:0">衛生管理の実施内容</h3>
+        ${(PLAN_DATA.sections || []).map((section, index) => `
+          <div class="plan-edit-section">
+            <label class="field-label" for="planSectionBody${index}">
+              ${escapeHtml(section.title)}
+            </label>
+            <textarea id="planSectionBody${index}">${escapeHtml(section.body)}</textarea>
+          </div>
+        `).join("")}
+      `;
+
+      el("planEditPanel").classList.remove("hidden");
+      el("planEditPanel").scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+
+    function closePlanEdit() {
+      el("planEditPanel")?.classList.add("hidden");
+      PENDING_PLAN_REVISION = null;
+    }
+
+    function buildPlanRevisionPayload() {
+      const plan = {
+        facility: PLAN_DATA?.facility || "第一製造部",
+        manager: String(el("planEditManager").value || "").trim(),
+        water: String(el("planEditWater").value || "").trim(),
+        metalDetector: String(el("planEditMetalDetector").value || "").trim(),
+        storagePeriod: String(el("planEditStoragePeriod").value || "").trim(),
+        temperatureTargets: (PLAN_DATA?.temperatureTargets || []).map(
+          target => ({ ...target })
+        ),
+        sections: (PLAN_DATA?.sections || []).map((section, index) => ({
+          title: section.title,
+          body: String(el(`planSectionBody${index}`)?.value || "").trim()
+        }))
+      };
+
+      return {
+        effectiveDate: String(el("planEffectiveDate").value || "").trim(),
+        changeReason: String(el("planChangeReason").value || "").trim(),
+        plan
+      };
+    }
+
+    function validatePlanRevisionInput(payload) {
+      if (!payload.effectiveDate) return "適用日を入力してください。";
+      if (!payload.changeReason) return "改定理由を入力してください。";
+      if (!payload.plan.manager) return "食品衛生責任者を入力してください。";
+      if (!payload.plan.water) return "使用水を入力してください。";
+      if (!payload.plan.metalDetector) return "金属探知機の有無を入力してください。";
+      if (!payload.plan.storagePeriod) return "記録保存期間を入力してください。";
+
+      const emptySection = (payload.plan.sections || []).find(
+        section => !section.body
+      );
+      if (emptySection) {
+        return `${emptySection.title} の内容を入力してください。`;
+      }
+
+      return "";
+    }
+
+    function confirmPlanRevision() {
+      const payload = buildPlanRevisionPayload();
+      const error = validatePlanRevisionInput(payload);
+
+      if (error) {
+        showError(new Error(error));
+        return;
+      }
+
+      PENDING_PLAN_REVISION = payload;
+      openOperatorModal("plan");
+    }
+
+    async function waitForPlanRevision(previousRevisionNo, employeeNo, attempts = 22) {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        await sleep(attempt === 0 ? 850 : 550);
+
+        try {
+          const plan = await jsonp({ action:"plan" });
+          const revision = plan?.revision;
+
+          if (
+            Number(revision?.revisionNo || 0) > Number(previousRevisionNo || 0) &&
+            String(revision?.createdByEmployeeNo || "") === String(employeeNo || "")
+          ) {
+            return plan;
+          }
+        } catch (error) {
+          // 保存完了待ち。
+        }
+      }
+
+      throw new Error(
+        "計画改定の保存結果を確認できませんでした。画面を再読み込みしてご確認ください。"
+      );
+    }
+
+    async function executePlanRevisionAsOperator() {
+      if (!PENDING_PLAN_REVISION) {
+        setOperatorModalMessage("計画改定内容を確認できません。", "error");
+        return;
+      }
+
+      try {
+        el("operatorConfirmButton").disabled = true;
+        el("operatorConfirmButton").dataset.busy = "true";
+        el("operatorLookupButton").disabled = true;
+
+        setOperatorModalMessage(
+          "衛生管理計画を改定しています...",
+          "saving"
+        );
+
+        const previousRevisionNo =
+          Number(PLAN_DATA?.currentRevisionNo || 0);
+        const expectedEmployeeNo = SELECTED_OPERATOR.employee_no;
+
+        submitForm("savePlanRevision", {
+          payload: PENDING_PLAN_REVISION,
+          operatorEmployeeNo: expectedEmployeeNo
+        });
+
+        const plan = await waitForPlanRevision(
+          previousRevisionNo,
+          expectedEmployeeNo
+        );
+
+        PENDING_PLAN_REVISION = null;
+        closeOperatorModal();
+        closePlanEdit();
+        renderPlan(plan);
+
+        showMessage(
+          `${plan.revision?.createdByName || "改定者"}として衛生管理計画を第${plan.revision?.revisionNo || ""}版へ改定しました。`,
+          "notice"
+        );
+
+      } catch (error) {
+        setOperatorModalMessage(
+          error?.message || String(error),
+          "error"
+        );
+
+      } finally {
+        el("operatorConfirmButton").dataset.busy = "false";
+        el("operatorConfirmButton").disabled =
+          !SELECTED_OPERATOR?.employee_no;
+        el("operatorLookupButton").disabled = false;
       }
     }
 
