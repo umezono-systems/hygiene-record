@@ -831,7 +831,7 @@
         <div class="title">梅園 衛生管理記録</div>
         <div class="sub" id="headerSub">第一製造部</div>
       </div>
-      <div class="sub">v0.9_work</div>
+      <div class="sub">v0.9-1_work</div>
     </div>
   </header>
 
@@ -1252,7 +1252,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxpiAl-sBS0RrrCVjKLx60TRORCL0GMNL-BqBVimzjE_Epqc55G43C4vXNcGxwrDqtfCQ/exec";
     const PORTAL_URL = "https://umezono-systems.github.io/umezono-portal/";
     const PORTAL_DEVICE_AUTH_STORAGE_KEY = "umezono-portal-v2.5-device-auth";
-    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.9-session";
+    const HYGIENE_SESSION_STORAGE_KEY = "hygiene-record-v0.9-1-session";
 
     let BOOT = null;
     let RECORD = null;
@@ -2683,11 +2683,7 @@
 
       if (record.status === "CONFIRMED" && record.operator) {
         confirmedLabel.textContent =
-          "確定記録者：" +
-          record.operator +
-          (record.operatorEmployeeNo
-            ? " / 社員番号 " + record.operatorEmployeeNo
-            : "");
+          "確定記録者：" + record.operator;
 
         confirmedLabel.classList.remove("hidden");
       } else {
@@ -2826,12 +2822,7 @@
                   <td>${row.status === "CONFIRMED" ? "確定" : "下書き"}</td>
                   <td>${Number(row.problemCount || 0)}</td>
                   <td>${Number(row.unresolvedCount || 0)}</td>
-                  <td>
-                    ${escapeHtml(row.operator || "")}
-                    ${row.operatorEmployeeNo
-                      ? `<div class="muted">社員番号 ${escapeHtml(row.operatorEmployeeNo)}</div>`
-                      : ""}
-                  </td>
+                  <td>${escapeHtml(row.operator || "")}</td>
                 </tr>
               `).join("")}
             </tbody>
